@@ -1,0 +1,12 @@
+{
+  "name": "project-name",
+  "version": "1.0.0",
+  "size": {
+    "width": 3,
+    "height": 3
+  },
+  "mapping": [],
+  "collections": [],
+  "workflowMapping": [],
+  "packagesMapping": []
+}

@@ -1,7 +1,7 @@
 {
   "name": "create-dovite",
   "version": "1.0.2",
-  "description": "Vite template with Tailwind(v4), shadcn(canary) and DOMO integration",
+  "description": "Vite template featuring Tailwind (v4), ShadCN (Canary), and DOMO integration.",
   "main": "index.js",
   "bin": {
     "create-dovite": "index.js"

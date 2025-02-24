@@ -1,7 +1,7 @@
 {
   "name": "create-dovite",
-  "version": "1.0.1",
-  "description": "Vite template with Tailwind, shadcn and DOMO integration",
+  "version": "1.0.2",
+  "description": "Vite template with Tailwind(v4), shadcn(canary) and DOMO integration",
   "main": "index.js",
   "bin": {
     "create-dovite": "index.js"
@@ -23,6 +23,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ajay-Balu"
+    "url": "https://github.com/Ajay-Balu/create-dovite"
   }
 }

@@ -17,7 +17,7 @@ function App() {
         <a href="https://react.dev" target="_blank">
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
-        <a  href="#" target="_blank">
+        <a  href="https://developer.domo.com/portal/u8w475o2245yp-starter-kits" target="_blank">
           <img src={domoLogo} className='logo domo' alt="DOMO logo" />
         </a>
       </div>

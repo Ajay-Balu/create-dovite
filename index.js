@@ -109,7 +109,7 @@ async function main() {
       build: "vite build",
       lint: "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
       preview: "vite preview",
-      upload: "yarn run build && cd dist && domo publish && cd ..",
+      upload: "yarn run build && cd dist && domo publish && cd ..", //only line need to be added
     };
 
     fs.writeFileSync(
@@ -120,10 +120,10 @@ async function main() {
     // Initialize shadcn
     console.log("Initializing shadcn...");
     try {
-      execSync("npx shadcn@canary init", { stdio: "inherit" });
+      execSync("npx shadcn@latest init", { stdio: "inherit" });
     } catch (error) {
       console.log(
-        'Note: You may need to run "npx shadcn@canary init" manually if initialization failed.'
+        'Note: You may need to run "npx shadcn@latest init" manually if initialization failed.'
       );
     }
 
@@ -132,32 +132,32 @@ async function main() {
     execSync("yarn", { stdio: "inherit" });
 
     // Modify components.json
-    const componentsJsonPath = path.join(process.cwd(), "components.json");
-    if (fs.existsSync(componentsJsonPath)) {
-      console.log("Updating components.json...");
-      try {
-        const componentsJson = JSON.parse(
-          fs.readFileSync(componentsJsonPath, "utf8")
-        );
+    // const componentsJsonPath = path.join(process.cwd(), "components.json");
+    // if (fs.existsSync(componentsJsonPath)) {
+    //   console.log("Updating components.json...");
+    //   try {
+    //     const componentsJson = JSON.parse(
+    //       fs.readFileSync(componentsJsonPath, "utf8")
+    //     );
 
-        // Modify the utils path as specified
-        if (componentsJson.aliases) {
-          componentsJson.aliases.utils = "/src/lib/utils";
-        }
+    //     // Modify the utils path as specified
+    //     if (componentsJson.aliases) {
+    //       componentsJson.aliases.utils = "/src/lib/utils";
+    //     }
 
-        fs.writeFileSync(
-          componentsJsonPath,
-          JSON.stringify(componentsJson, null, 2)
-        );
-        console.log("Successfully updated components.json");
-      } catch (error) {
-        console.error("Error updating components.json:", error.message);
-      }
-    } else {
-      console.log(
-        "Warning: components.json not found. Make sure shadcn initialization completed successfully."
-      );
-    }
+    //     fs.writeFileSync(
+    //       componentsJsonPath,
+    //       JSON.stringify(componentsJson, null, 2)
+    //     );
+    //     console.log("Successfully updated components.json");
+    //   } catch (error) {
+    //     console.error("Error updating components.json:", error.message);
+    //   }
+    // } else {
+    //   console.log(
+    //     "Warning: components.json not found. Make sure shadcn initialization completed successfully."
+    //   );
+    // }
     execSync("npx shadcn@latest add button", { stdio: "inherit" });
 
     console.log("Initializing git");

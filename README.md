@@ -1,6 +1,6 @@
 # create-dovite
 
-Vite template featuring Tailwind (v4), ShadCN (Canary), and DOMO integration.
+Vite template featuring Tailwind(v4), ShadCN, and DOMO integration.
 
 
 > **Note:** This package requires yarn and the DOMO CLI to be installed before use.
@@ -12,14 +12,14 @@ Vite template featuring Tailwind (v4), ShadCN (Canary), and DOMO integration.
 npm install -g yarn
 
 # For DOMO CLI installation, refer to:
-# https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation
+[DOMO CLI](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
 ```
 
 ## Usage
 
 ```bash
 # Using yarn (recommended)
-yarn create dovite my-app
+yarn create-dovite my-app
 
 # Using npm
 npx create-dovite my-app

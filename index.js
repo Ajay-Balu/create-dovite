@@ -15,9 +15,12 @@ async function main() {
     console.log(`Creating new project: ${projectName}`);
 
     // Create Vite project
-    execSync(`yarn create vite ${projectName} --template react`, {
-      stdio: "inherit",
-    });
+    execSync(
+      `yarn create vite ${projectName} --template react --no-interactive`,
+      {
+        stdio: "inherit",
+      }
+    );
 
     // Move into project directory
     process.chdir(projectName);

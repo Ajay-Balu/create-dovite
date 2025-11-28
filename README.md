@@ -2,7 +2,6 @@
 
 Vite template featuring Tailwind(v4), ShadCN, and DOMO integration.
 
-
 > **Note:** This package requires yarn and the DOMO CLI to be installed before use.
 
 ## Prerequisites
@@ -10,16 +9,17 @@ Vite template featuring Tailwind(v4), ShadCN, and DOMO integration.
 ```bash
 # Install yarn if you don't have it
 npm install -g yarn
+```
 
 # For DOMO CLI installation, refer to:
+
 [DOMO CLI](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
-```
 
 ## Usage
 
 ```bash
 # Using yarn (recommended)
-yarn create-dovite my-app
+yarn create dovite my-app
 
 # Using npm
 npx create-dovite my-app
@@ -44,4 +44,5 @@ npx create-dovite my-app
 - [Vitawind](https://vitawind.vercel.app/)
 
 ## License
+
 MIT

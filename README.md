@@ -1,19 +1,27 @@
 # create-dovite
 
-Vite template featuring Tailwind(v4), ShadCN, and DOMO integration.
+<!-- a detailed description of the package with all the features -->
 
-> **Note:** This package requires yarn and the DOMO CLI to be installed before use.
+**create-dovite** is a CLI tool designed to jumpstart the development of Domo Custom Apps. It provides a modern developer experience by combining the speed of **Vite** with the utility-first approach of **Tailwind CSS**. This starter kit comes pre-integrated with **shadcn/ui** for accessible components and includes built-in configurations for the **Domo Integrations**, ensuring a smooth transition from local development to production.
+
+# Features
+
+- ⚡️ Vite for fast development
+- ⚛️ React and Vue support
+- 📘 TypeScript and JavaScript support
+- 🎨 Tailwind CSS for styling
+- 🎯 shadcn/ui components
+- 🔄 DOMO integration
+- 📦 Preconfigured build setup
 
 ## Prerequisites
 
+> **Note:** This package requires yarn and the DOMO CLI to be installed before use.
+
 ```bash
-# Install yarn if you don't have it
-npm install -g yarn
+# Install yarn and DOMO CLI if you don't have them
+npm install -g yarn ryuu
 ```
-
-# For DOMO CLI installation, refer to:
-
-[DOMO CLI](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
 
 ## Usage
 
@@ -25,18 +33,14 @@ yarn create dovite my-app
 npx create-dovite my-app
 ```
 
-## Features
-
-- ⚡️ Vite for fast development
-- 🎨 Tailwind CSS for styling
-- 🎯 shadcn/ui components
-- 🔄 DOMO integration
-- 📦 Preconfigured build setup
-
 ## Requirements
 
 - Node.js 16.x or higher
 - npm or yarn
+
+## For DOMO CLI installation, refer to:
+
+[DOMO CLI](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
 
 ## Inspirations
 

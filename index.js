@@ -7,7 +7,11 @@ const {
   initializeShadcn,
   initializeGit,
 } = require("./src/setup");
-const { copyTemplateFiles, updateManifest } = require("./src/files");
+const {
+  copyTemplateFiles,
+  updateManifest,
+  cleanupViteDefaults,
+} = require("./src/files");
 
 async function main() {
   try {
@@ -21,13 +25,15 @@ async function main() {
     // We pass projectName so they can resolve paths correctly relative to CWD
     updatePackageJson(projectName, templateType);
 
-    installDependencies(projectName);
+    installDependencies(projectName, templateType);
 
     copyTemplateFiles(projectName, templateType);
 
+    cleanupViteDefaults(projectName, templateType);
+
     updateManifest(projectName);
 
-    initializeShadcn(projectName);
+    initializeShadcn(projectName, templateType);
 
     initializeGit(projectName);
 

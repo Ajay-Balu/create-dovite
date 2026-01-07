@@ -7,7 +7,15 @@ function createViteProject(projectName, templateType) {
     `Creating new project: ${projectName} with template ${templateType}`
   );
 
-  const viteTemplate = templateType === "react-ts" ? "react-ts" : "react";
+  // Map our template types to Vite's template names
+  const viteTemplateMap = {
+    "react-js": "react",
+    "react-ts": "react-ts",
+    "vue-js": "vue",
+    "vue-ts": "vue-ts",
+  };
+
+  const viteTemplate = viteTemplateMap[templateType] || "react";
   execSync(
     `yarn create vite ${projectName} --template ${viteTemplate} --no-interactive`,
     {
@@ -23,10 +31,21 @@ function updatePackageJson(projectName, templateType) {
 
   packageJson.name = projectName;
 
+  // TypeScript templates need tsc build step
+  const isTypeScript = templateType === "react-ts" || templateType === "vue-ts";
+  const buildCommand = isTypeScript ? "vue-tsc -b && vite build" : "vite build";
+  // React-ts uses tsc, Vue-ts uses vue-tsc
+  const tsBuildCommand =
+    templateType === "react-ts" ? "tsc -b && vite build" : buildCommand;
+
   packageJson.scripts = {
     ...packageJson.scripts,
     dev: "vite",
-    build: templateType === "react-ts" ? "tsc -b && vite build" : "vite build",
+    build: isTypeScript
+      ? templateType === "react-ts"
+        ? "tsc -b && vite build"
+        : "vue-tsc -b && vite build"
+      : "vite build",
     lint: "eslint .",
     preview: "vite preview",
     upload: "yarn run build && cd dist && domo publish && cd ..",
@@ -35,51 +54,55 @@ function updatePackageJson(projectName, templateType) {
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }
 
-function installDependencies(projectName) {
+function installDependencies(projectName, templateType) {
   console.log("Installing dependencies...");
-  // We need to run this inside the project directory
-  // But since we are passing projectName, we can use cwd option or chdir before calling this.
-  // However, the original script chdir'd into the project.
-  // Let's assume the caller will handle chdir or we pass cwd.
-  // To keep it simple and consistent with original flow, let's assume we are IN the project dir
-  // OR we pass the cwd to execSync.
-  // The original script did `process.chdir(projectName)`.
-
-  // Let's stick to the original flow where we chdir in the main script,
-  // OR we can make these functions robust.
-  // For now, let's assume we are inside the directory for these commands to work easily
-  // without passing cwd everywhere, BUT `updatePackageJson` used `path.join`.
-  // Let's make `updatePackageJson` work with relative path, and these commands too.
-
-  // Actually, `yarn` needs to run in the project dir.
-
   const options = { stdio: "inherit", cwd: projectName };
+  const isVue = templateType === "vue-js" || templateType === "vue-ts";
 
   execSync("yarn", options);
 
   console.log("Installing additional dependencies...");
-  execSync(
-    "yarn add tailwindcss @tailwindcss/vite @domoinc/ryuu-proxy ryuu.js tailwind-merge react-icons",
-    options
-  );
+
+  // Common dependencies for all templates
+  const commonDeps =
+    "tailwindcss @tailwindcss/vite @domoinc/ryuu-proxy ryuu.js tailwind-merge";
+
+  if (isVue) {
+    // Vue-specific dependencies
+    execSync(`yarn add ${commonDeps}`, options);
+  } else {
+    // React-specific dependencies
+    execSync(`yarn add ${commonDeps} react-icons`, options);
+  }
+
   execSync("yarn add -D @types/node", options);
 }
 
-function initializeShadcn(projectName) {
+function initializeShadcn(projectName, templateType) {
   console.log("Initializing shadcn...");
   const options = { stdio: "inherit", cwd: projectName };
+  const isVue = templateType === "vue-js" || templateType === "vue-ts";
+
   try {
-    execSync("npx shadcn@latest init", options);
-
-    // Install new dependencies after shadcn (it might add some)
-    // The original script ran yarn again.
-    console.log("Installing final dependencies...");
-    execSync("yarn", options);
-
-    execSync("npx shadcn@latest add button", options);
+    if (isVue) {
+      // Shadcn-vue uses a different initialization
+      execSync("npx shadcn-vue@latest init", options);
+      console.log("Installing final dependencies...");
+      execSync("yarn", options);
+      execSync("npx shadcn-vue@latest add button", options);
+    } else {
+      // React uses standard shadcn
+      execSync("npx shadcn@latest init", options);
+      console.log("Installing final dependencies...");
+      execSync("yarn", options);
+      execSync("npx shadcn@latest add button", options);
+    }
   } catch (error) {
+    const shadcnCmd = isVue
+      ? "npx shadcn-vue@latest init"
+      : "npx shadcn@latest init";
     console.log(
-      'Note: You may need to run "npx shadcn@latest init" manually if initialization failed.'
+      `Note: You may need to run "${shadcnCmd}" manually if initialization failed.`
     );
   }
 }

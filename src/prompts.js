@@ -22,9 +22,8 @@ async function getProjectDetails(initialProjectName) {
     choices: [
       { title: "React JavaScript", value: "react-js" },
       { title: "React TypeScript", value: "react-ts" },
-      // Vue templates coming soon in a future release
-      // { title: "Vue JavaScript", value: "vue-js" },
-      // { title: "Vue TypeScript", value: "vue-ts" },
+      { title: "Vue JavaScript", value: "vue-js" },
+      { title: "Vue TypeScript", value: "vue-ts" },
     ],
     initial: 0,
   });

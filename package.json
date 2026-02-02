@@ -1,7 +1,7 @@
 {
   "name": "create-dovite",
-  "version": "2.2.0",
-  "description": "Vite template featuring React, TailwindCSS, ShadCN, and DOMO integration.",
+  "version": "2.2.2",
+  "description": "Vite template featuring React, Vue, TailwindCSS, ShadCN, and DOMO integration.",
   "main": "index.js",
   "bin": {
     "create-dovite": "index.js"
@@ -9,6 +9,8 @@
   "files": [
     "templates/react-js",
     "templates/react-ts",
+    "templates/vue-js",
+    "templates/vue-ts",
     "src",
     "index.js"
   ],
@@ -19,6 +21,7 @@
     "shadcn",
     "domo",
     "react",
+    "vue",
     "create-vite"
   ],
   "author": "Ajay B",

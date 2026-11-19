@@ -60,11 +60,15 @@ AGENTS.md / CLAUDE.md        Instructions for AI coding agents
 .claude/skills/              Domo skills (planning, pro-code apps, APIs, Code Engine, embed, credits)
 ```
 
+## What's new in 2.4.0
+
+- Domo agent skills (`domo-skills/`) copied into every project's `.claude/skills/`, plus `AGENTS.md` for Cursor / Codex / Antigravity; agents plan and recommend (Code Engine, Data API vs SQL for embeds, AppDB, Workflows…) before building
+- New `queryData` (page-filter aware Data API), `onDataUpdated`, `onFiltersUpdated`; manifest gets `fullpage` and device-permission flags
+- Domo rules for agents: SQL API = one dataset per call (no JOINs, subqueries OK), Domo times are UTC, AppDB uses MongoDB query syntax
+
 ## What's new in 2.3.0
 
 - Fixed React TS build errors with current create-vite (TypeScript 7 / Vite 8): removed `baseUrl`, manifest read without JSON import, `ryuu.js` v6 built-in types
-- Domo agent skills (`domo-skills/`) copied into every project's `.claude/skills/`, plus `AGENTS.md` for Cursor / Codex / Antigravity; agents plan and recommend (Code Engine, Data API vs SQL for embeds, AppDB, Workflows…) before building
-- New `queryData` (page-filter aware Data API), `onDataUpdated`, `onFiltersUpdated`; manifest gets `fullpage` and device-permission flags
 - `dataApi` + `domoAPI` merged into a single `domoApi` file; added `startWorkflow`, `runCodeEngine`, `navigate`, `getEnv`; URL-encoding and error handling fixed
 - Removed browser-side `api.domo.com` client-credential helpers (exposed secrets) — use Code Engine instead
 - Keeps create-vite's own `build`/`lint` scripts; Vue templates no longer get a broken `eslint` script

@@ -1,6 +1,6 @@
 {
   "name": "create-dovite",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Scaffold Domo pro-code (custom) apps with Vite, React or Vue (JS/TS), Tailwind CSS v4, shadcn/ui and ryuu.js — with CLAUDE.md context for AI-assisted development.",
   "main": "index.js",
   "bin": {

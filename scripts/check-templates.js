@@ -16,6 +16,7 @@ const fail = (msg) => errors.push(msg);
 
 const REQUIRED = {
   common: [
+    "AGENTS.md",
     "CLAUDE.md",
     ".claudeignore",
     ".claude/settings.json",
@@ -41,6 +42,26 @@ const exportsOf = (file) =>
     .join(",");
 
 let referenceExports = null;
+
+// --- domo-skills: each folder needs SKILL.md with matching name + description
+const skillsDir = path.join(root, "domo-skills");
+const skillNames = fs.existsSync(skillsDir)
+  ? fs.readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+  : [];
+if (!skillNames.length) fail("domo-skills/ is missing or empty");
+for (const name of skillNames) {
+  const file = path.join(skillsDir, name, "SKILL.md");
+  if (!fs.existsSync(file)) {
+    fail(`domo-skills/${name}: missing SKILL.md`);
+    continue;
+  }
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(file, "utf8"));
+  if (!fm) fail(`domo-skills/${name}: SKILL.md has no frontmatter`);
+  else {
+    if (!new RegExp(`^name:\\s*${name}\\s*$`, "m").test(fm[1])) fail(`domo-skills/${name}: frontmatter name must be "${name}"`);
+    if (!/^description:\s*\S/m.test(fm[1])) fail(`domo-skills/${name}: frontmatter description missing`);
+  }
+}
 
 for (const t of TEMPLATE_VALUES) {
   const dir = path.join(root, "templates", t);
@@ -68,6 +89,15 @@ for (const t of TEMPLATE_VALUES) {
       if (/from ["']axios["']/.test(src)) fail(`${t}: ${rel} imports axios (not installed)`);
     }
   }
+  // every skill referenced in AGENTS.md must exist
+  const agents = path.join(dir, "AGENTS.md");
+  if (fs.existsSync(agents)) {
+    for (const m of fs.readFileSync(agents, "utf8").matchAll(/`(domo-[a-z-]+)`/g)) {
+      if (!skillNames.includes(m[1])) fail(`${t}: AGENTS.md references unknown skill ${m[1]}`);
+    }
+    if (!/@AGENTS\.md/.test(fs.readFileSync(path.join(dir, "CLAUDE.md"), "utf8"))) fail(`${t}: CLAUDE.md must import @AGENTS.md`);
+  }
+
   const api = ["src/API/domoApi.ts", "src/API/domoApi.js"].map((f) => path.join(dir, f)).find(fs.existsSync);
   if (api) {
     const names = exportsOf(api);

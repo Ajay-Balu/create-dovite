@@ -41,7 +41,8 @@ Get started:
 Publish to Domo:
   yarn upload
 
-Using Claude Code? CLAUDE.md in the project explains Domo, the manifest and the API helpers.
+AI agents (Claude Code, Cursor, Codex, Antigravity…): AGENTS.md + .claude/skills
+teach them Domo. Describe the app you want — they'll plan, recommend, then build.
 `);
   } catch (error) {
     console.error("\nError creating project:", error.message);

@@ -11,7 +11,7 @@
 - 🎯 shadcn/ui (React) / shadcn-vue (Vue) components
 - 🔄 Domo integration: one `src/API/domoApi` file for datasets, SQL, AppDB, files, Domo AI, workflows and Code Engine
 - 🔌 Local dev proxy (`@domoinc/ryuu-proxy`) so Domo calls work on `localhost`
-- 🤖 `CLAUDE.md`, `.claudeignore` and `.claude/settings.json` in every project — Claude Code understands Domo, the manifest, the iframe constraints and the API helpers out of the box
+- 🤖 AI-agent ready: `AGENTS.md`, `CLAUDE.md` and 7 Domo skills (`.claude/skills/`) in every project — Claude Code, Cursor, Codex and Antigravity learn Domo, plan the architecture, recommend Code Engine / Data API / AppDB where it fits, then build
 - 📦 `yarn upload` builds and publishes to Domo
 
 ## Prerequisites
@@ -56,12 +56,15 @@ src/API/domoApi.(js|ts)      All Domo API calls in one place
 src/API/currentUserContext.* Current Domo user (React context / Vue composable)
 src/pages/index.*            Starter landing page
 vite.config.*                Tailwind + ryuu-proxy + "@" alias
-CLAUDE.md                    Project context for Claude Code
+AGENTS.md / CLAUDE.md        Instructions for AI coding agents
+.claude/skills/              Domo skills (planning, pro-code apps, APIs, Code Engine, embed, credits)
 ```
 
 ## What's new in 2.3.0
 
 - Fixed React TS build errors with current create-vite (TypeScript 7 / Vite 8): removed `baseUrl`, manifest read without JSON import, `ryuu.js` v6 built-in types
+- Domo agent skills (`domo-skills/`) copied into every project's `.claude/skills/`, plus `AGENTS.md` for Cursor / Codex / Antigravity; agents plan and recommend (Code Engine, Data API vs SQL for embeds, AppDB, Workflows…) before building
+- New `queryData` (page-filter aware Data API), `onDataUpdated`, `onFiltersUpdated`; manifest gets `fullpage` and device-permission flags
 - `dataApi` + `domoAPI` merged into a single `domoApi` file; added `startWorkflow`, `runCodeEngine`, `navigate`, `getEnv`; URL-encoding and error handling fixed
 - Removed browser-side `api.domo.com` client-credential helpers (exposed secrets) — use Code Engine instead
 - Keeps create-vite's own `build`/`lint` scripts; Vue templates no longer get a broken `eslint` script

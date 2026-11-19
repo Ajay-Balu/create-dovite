@@ -5,8 +5,14 @@
     "width": 3,
     "height": 3
   },
+  "fullpage": true,
   "mapping": [],
   "collections": [],
   "workflowMapping": [],
-  "packagesMapping": []
+  "packagesMapping": [],
+  "allowCamera": false,
+  "allowMic": false,
+  "allowGeolocation": false,
+  "allowBluetooth": false,
+  "allowNFC": false
 }

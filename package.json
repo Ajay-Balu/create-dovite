@@ -11,6 +11,7 @@
     "templates/react-ts",
     "templates/vue-js",
     "templates/vue-ts",
+    "domo-skills",
     "src",
     "index.js"
   ],

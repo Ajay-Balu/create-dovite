@@ -107,7 +107,11 @@ const fail = (context: string) => (error: unknown): never => {
 // User & environment
 // ---------------------------------------------------------------------------
 
-/** Current logged-in Domo user (works in Domo and through the local proxy). */
+/**
+ * Current logged-in Domo user, verified server-side (works in Domo and through
+ * the local proxy). Use this — not `domo.env` query params, which can be
+ * spoofed — for anything identity- or permission-related.
+ */
 export const GetCurrentUser = (): Promise<DomoUser> =>
   domo
     .get<Record<string, unknown>>("/domo/environment/v1")
@@ -149,8 +153,9 @@ export const GetAllUser = () => ListAllUsers(false, 500);
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch rows from a mapped dataset.
- * `query` is appended as-is, e.g. "fields=region,sales&filter=sales>100&limit=50".
+ * Fetch rows from a mapped dataset via the Data API (respects page filters).
+ * `query` is appended as-is, e.g. "fields=region,sales&groupby=region&sum=sales&limit=50".
+ * Prefer `queryData` for structured options.
  */
 export const fetchData = <T = Record<string, unknown>>(
   datasetAlias: string,
@@ -161,7 +166,11 @@ export const fetchData = <T = Record<string, unknown>>(
     .catch(fail(`fetchData(${datasetAlias})`));
 
 /**
- * Run SQL against a mapped dataset. Use the dataset ALIAS as the table name:
+ * Run SQL against a mapped dataset. Use the dataset ALIAS as the table name.
+ * One call queries ONE dataset (the alias): no JOINs/UNIONs, but subqueries on the
+ * same alias work. Dates come back in UTC.
+ * ⚠ SQL ignores page filters and embed (programmatic) filters —
+ * use `queryData`/`fetchData` when the app sits on a filtered dashboard or is embedded.
  *   fetchSqlData("sales", "SELECT region, SUM(amount) AS total FROM sales GROUP BY region")
  * Returns an array of objects keyed by (cleaned) column name.
  */
@@ -193,6 +202,22 @@ export const fetchSqlData = async <T = Record<string, unknown>>(
     return fail(`fetchSqlData(${datasetAlias})`)(error);
   }
 };
+
+/** Options for `queryData` — same as ryuu.js `domo.data.query`. */
+export type DataQueryOptions = NonNullable<Parameters<typeof domo.data.query>[1]>;
+
+/**
+ * Structured Data API query (server-side aggregation, page-filter aware):
+ *   queryData("sales", { fields: ["region", "amount"], groupBy: ["region"], sum: ["amount"], limit: 100 })
+ * Pass `ignorePageFilters: true` only when the app must show unfiltered data.
+ */
+export const queryData = <T = Record<string, unknown>>(
+  datasetAlias: string,
+  options: DataQueryOptions = {}
+): Promise<T[]> =>
+  domo.data
+    .query<T[]>(datasetAlias, options)
+    .catch(fail(`queryData(${datasetAlias})`));
 
 // ---------------------------------------------------------------------------
 // AppDB (collections from manifest.json → "collections")
@@ -272,8 +297,9 @@ export const BulkDeleteDocuments = (collection: string, ids: string[]) =>
     .catch(fail("BulkDeleteDocuments"));
 
 /**
- * Mongo-style query. Remember document fields live under `content.`:
- *   QueryDocument("tasks", { "content.owner": userId }, { orderby: "createdOn", limit: 50 })
+ * MongoDB query syntax. Document fields live under `content.`; system dates are UTC:
+ *   QueryDocument("tasks", { "content.owner": userId, "content.status": { $in: ["open"] } },
+ *                 { orderby: "createdOn", limit: 50 })
  */
 export const QueryDocument = <T = Record<string, unknown>>(
   collection: string,
@@ -291,7 +317,7 @@ export const QueryDocument = <T = Record<string, unknown>>(
     )
     .catch(fail("QueryDocument"));
 
-/** Documents created on or before `dateString` (ISO date). */
+/** Documents created on or before `dateString` (ISO-8601, UTC — e.g. "2026-11-01T00:00:00Z"). */
 export const queryDocumentsByDate = <T = Record<string, unknown>>(
   collection: string,
   dateString: string,
@@ -459,8 +485,27 @@ export const runCodeEngine = <T = unknown>(
 export const navigate = (url: string, newWindow = false) =>
   domo.navigate(url, newWindow);
 
-/** Environment info passed to the iframe (userId, customer, locale, pageId, ...). */
+/**
+ * Environment info passed to the iframe (userId, customer, locale, pageId,
+ * platform …). Fine for UI hints; NOT for security (values come from the URL).
+ */
 export const getEnv = () => domo.env;
+
+/**
+ * Called when a mapped dataset updates. Registering this stops Domo from
+ * reloading the whole app — re-fetch the affected data instead.
+ * Returns an unsubscribe function.
+ */
+export const onDataUpdated = (callback: (alias: string) => void) =>
+  domo.onDataUpdated(callback);
+
+/**
+ * Called when page filters change. Note: the FIRST registration clears the
+ * parent page's filters. Returns an unsubscribe function.
+ */
+export const onFiltersUpdated = (
+  callback: Parameters<typeof domo.onFiltersUpdated>[0]
+) => domo.onFiltersUpdated(callback);
 
 // ---------------------------------------------------------------------------
 // Default export (keeps the old `DomoApi.X()` style working)
@@ -474,6 +519,7 @@ const DomoApi = {
   ListAllUsers,
   // datasets
   fetchData,
+  queryData,
   fetchSqlData,
   // appdb
   CreateDocument,
@@ -500,6 +546,8 @@ const DomoApi = {
   // iframe helpers
   navigate,
   getEnv,
+  onDataUpdated,
+  onFiltersUpdated,
 };
 
 export default DomoApi;

@@ -27,8 +27,6 @@ type DevResponse = ServerResponse & {
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Relative asset URLs: the built app is served from a sub-path inside Domo.
-  base: "./",
   plugins: [
     react(),
     tailwindcss(),

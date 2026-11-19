@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 const TEMPLATES_DIR = path.join(__dirname, "..", "templates");
+// Shared Domo skills for AI agents, copied into every project's .claude/skills/
+const SKILLS_DIR = path.join(__dirname, "..", "domo-skills");
 
 // npm never publishes files named .gitignore/.npmrc, so templates may store
 // them with a leading underscore; they're renamed on copy.
@@ -11,7 +13,7 @@ const RENAME_ON_COPY = {
 };
 
 // Text files in which {{PROJECT_NAME}} is replaced after copying.
-const PLACEHOLDER_FILES = ["CLAUDE.md"];
+const PLACEHOLDER_FILES = ["CLAUDE.md", "AGENTS.md"];
 
 function copyRecursive(src, dest) {
   if (fs.statSync(src).isDirectory()) {
@@ -25,6 +27,22 @@ function copyRecursive(src, dest) {
   }
 }
 
+/** Copies each domo-skills/<skill>/ folder to <project>/.claude/skills/<skill>/. */
+function copySkills(projectName) {
+  if (!fs.existsSync(SKILLS_DIR)) {
+    console.warn("domo-skills folder not found; skipping AI agent skills.");
+    return;
+  }
+  const dest = path.join(projectName, ".claude", "skills");
+  const skills = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(SKILLS_DIR, e.name, "SKILL.md")));
+  for (const skill of skills) {
+    copyRecursive(path.join(SKILLS_DIR, skill.name), path.join(dest, skill.name));
+  }
+  console.log(`Added ${skills.length} Domo skills for AI agents (.claude/skills)`);
+}
+
 function copyTemplateFiles(projectName, templateType) {
   const templateDir = path.join(TEMPLATES_DIR, templateType);
   if (!fs.existsSync(templateDir)) {
@@ -33,6 +51,8 @@ function copyTemplateFiles(projectName, templateType) {
 
   console.log(`\nCopying ${templateType} template files...`);
   copyRecursive(templateDir, projectName);
+
+  copySkills(projectName);
 
   const name = path.basename(projectName);
   for (const file of PLACEHOLDER_FILES) {
@@ -53,10 +73,16 @@ function updateManifest(projectName) {
     name,
     version: "0.0.1",
     size: { width: 3, height: 3 },
+    fullpage: true,
     mapping: [],
     collections: [],
     workflowMapping: [],
     packagesMapping: [],
+    allowCamera: false,
+    allowMic: false,
+    allowGeolocation: false,
+    allowBluetooth: false,
+    allowNFC: false,
   };
 
   if (fs.existsSync(manifestPath)) {

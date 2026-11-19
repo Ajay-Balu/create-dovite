@@ -6,7 +6,7 @@ import {
   type Ref,
   type InjectionKey,
 } from "vue";
-import DomoApi from "./domoAPI";
+import { GetCurrentUser } from "./domoApi";
 
 // Define the user context interface
 export interface UserContextType {
@@ -32,7 +32,7 @@ export function useUserProvider(): UserContextType {
   onMounted(() => {
     let isUserFetched = false;
 
-    DomoApi.GetCurrentUser().then((data) => {
+    GetCurrentUser().then((data) => {
       if (!isUserFetched) {
         const userId = data?.userId;
         const displayName = data?.displayName;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { FiBook, FiPackage, FiGithub, FiExternalLink } from "react-icons/fi";
 import "./index.css";
 

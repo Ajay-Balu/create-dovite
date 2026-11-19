@@ -2,26 +2,57 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+const isVueTemplate = (t) => t === "vue-js" || t === "vue-ts";
+const isTsTemplate = (t) => t === "react-ts" || t === "vue-ts";
+
+// Map our template types to create-vite template names
+const VITE_TEMPLATES = {
+  "react-js": "react",
+  "react-ts": "react-ts",
+  "vue-js": "vue",
+  "vue-ts": "vue-ts",
+};
+
+function run(cmd, cwd) {
+  execSync(cmd, { stdio: "inherit", cwd });
+}
+
+function commandExists(cmd) {
+  try {
+    execSync(`${cmd} --version`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function checkPrerequisites() {
+  if (!commandExists("yarn")) {
+    throw new Error(
+      "yarn is required. Install it with: npm install -g yarn"
+    );
+  }
+  if (!commandExists("domo")) {
+    console.warn(
+      "⚠  Domo CLI (ryuu) not found. You'll need it to run `domo login` and `yarn upload`:\n   npm install -g ryuu\n"
+    );
+  }
+}
+
 function createViteProject(projectName, templateType) {
   console.log(
-    `Creating new project: ${projectName} with template ${templateType}`
+    `\nCreating new project: ${projectName} with template ${templateType}`
+  );
+  const viteTemplate = VITE_TEMPLATES[templateType];
+  if (!viteTemplate) throw new Error(`Unknown template: ${templateType}`);
+
+  run(
+    `yarn create vite "${projectName}" --template ${viteTemplate} --no-interactive`
   );
 
-  // Map our template types to Vite's template names
-  const viteTemplateMap = {
-    "react-js": "react",
-    "react-ts": "react-ts",
-    "vue-js": "vue",
-    "vue-ts": "vue-ts",
-  };
-
-  const viteTemplate = viteTemplateMap[templateType] || "react";
-  execSync(
-    `yarn create vite ${projectName} --template ${viteTemplate} --no-interactive`,
-    {
-      stdio: "inherit",
-    }
-  );
+  if (!fs.existsSync(path.join(projectName, "package.json"))) {
+    throw new Error("create-vite did not produce a project. See output above.");
+  }
 }
 
 function updatePackageJson(projectName, templateType) {
@@ -29,101 +60,101 @@ function updatePackageJson(projectName, templateType) {
   const packageJsonPath = path.join(projectName, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
-  packageJson.name = projectName;
+  packageJson.name = path.basename(projectName);
 
-  // TypeScript templates need tsc build step
-  const isTypeScript = templateType === "react-ts" || templateType === "vue-ts";
-  const buildCommand = isTypeScript ? "vue-tsc -b && vite build" : "vite build";
-  // React-ts uses tsc, Vue-ts uses vue-tsc
-  const tsBuildCommand =
-    templateType === "react-ts" ? "tsc -b && vite build" : buildCommand;
-
+  // Keep the scripts create-vite generated (build / lint / preview match the
+  // toolchain it installed, e.g. `tsc -b`, `vue-tsc -b`, `oxlint`) and only
+  // fill in what's missing plus the Domo upload script.
+  const scripts = packageJson.scripts || {};
   packageJson.scripts = {
-    ...packageJson.scripts,
-    dev: "vite",
-    build: isTypeScript
-      ? templateType === "react-ts"
-        ? "tsc -b && vite build"
-        : "vue-tsc -b && vite build"
-      : "vite build",
-    lint: "eslint .",
-    preview: "vite preview",
-    upload: "yarn run build && cd dist && domo publish && cd ..",
+    dev: scripts.dev || "vite",
+    build:
+      scripts.build ||
+      (isTsTemplate(templateType)
+        ? isVueTemplate(templateType)
+          ? "vue-tsc -b && vite build"
+          : "tsc -b && vite build"
+        : "vite build"),
+    ...scripts,
+    preview: scripts.preview || "vite preview",
+    upload: "yarn build && cd dist && domo publish",
   };
 
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n");
 }
 
 function installDependencies(projectName, templateType) {
-  console.log("Installing dependencies...");
-  const options = { stdio: "inherit", cwd: projectName };
-  const isVue = templateType === "vue-js" || templateType === "vue-ts";
+  console.log("\nInstalling dependencies...");
+  run("yarn", projectName);
 
-  execSync("yarn", options);
+  console.log("\nInstalling Domo + Tailwind dependencies...");
+  const deps = [
+    "ryuu.js@^6",
+    "@domoinc/ryuu-proxy@^5",
+    "tailwindcss",
+    "@tailwindcss/vite",
+  ];
+  if (!isVueTemplate(templateType)) deps.push("react-icons");
+  run(`yarn add ${deps.join(" ")}`, projectName);
 
-  console.log("Installing additional dependencies...");
-
-  // Common dependencies for all templates
-  const commonDeps =
-    "tailwindcss @tailwindcss/vite @domoinc/ryuu-proxy ryuu.js tailwind-merge";
-
-  if (isVue) {
-    // Vue-specific dependencies
-    execSync(`yarn add ${commonDeps}`, options);
-  } else {
-    // React-specific dependencies
-    execSync(`yarn add ${commonDeps} react-icons`, options);
+  // vite.config uses node:fs / node:path. create-vite's TS templates already
+  // include @types/node; add it only if missing.
+  if (isTsTemplate(templateType)) {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(projectName, "package.json"), "utf8")
+    );
+    if (!pkg.devDependencies || !pkg.devDependencies["@types/node"]) {
+      run("yarn add -D @types/node", projectName);
+    }
   }
-
-  execSync("yarn add -D @types/node", options);
 }
 
 function initializeShadcn(projectName, templateType) {
-  console.log("Initializing shadcn...");
-  const options = { stdio: "inherit", cwd: projectName };
-  const isVue = templateType === "vue-js" || templateType === "vue-ts";
+  console.log("\nInitializing shadcn...");
+  const cli = isVueTemplate(templateType) ? "shadcn-vue" : "shadcn";
 
   try {
-    if (isVue) {
-      // Shadcn-vue uses a different initialization
-      execSync("npx shadcn-vue@latest init", options);
-      console.log("Installing final dependencies...");
-      execSync("yarn", options);
-      execSync("npx shadcn-vue@latest add button", options);
-    } else {
-      // React uses standard shadcn
-      execSync("npx shadcn@latest init", options);
-      console.log("Installing final dependencies...");
-      execSync("yarn", options);
-      execSync("npx shadcn@latest add button", options);
-    }
-  } catch (error) {
-    const shadcnCmd = isVue
-      ? "npx shadcn-vue@latest init"
-      : "npx shadcn@latest init";
+    run(`npx ${cli}@latest init`, projectName);
+    console.log("Installing final dependencies...");
+    run("yarn", projectName);
+    run(`npx ${cli}@latest add button`, projectName);
+  } catch {
     console.log(
-      `Note: You may need to run "${shadcnCmd}" manually if initialization failed.`
+      `\n⚠  shadcn setup did not finish. The starter page imports "@/components/ui/button",\n` +
+        `   so run these inside ${projectName} before \`yarn dev\`:\n` +
+        `     npx ${cli}@latest init\n` +
+        `     npx ${cli}@latest add button\n`
     );
   }
 }
 
 function initializeGit(projectName) {
-  console.log("Initializing git");
-  const options = { stdio: "inherit", cwd: projectName };
+  console.log("\nInitializing git...");
   try {
-    execSync("git init", options);
-    execSync("git add .", options);
-    execSync(`git commit -m "first commit"`, options);
-    execSync("git checkout -b main", options);
-  } catch (e) {
-    console.log("Git initialization failed or skipped.");
+    try {
+      execSync("git init -b main", { stdio: "ignore", cwd: projectName });
+    } catch {
+      // git < 2.28 doesn't support -b
+      execSync("git init", { stdio: "ignore", cwd: projectName });
+      execSync("git checkout -b main", { stdio: "ignore", cwd: projectName });
+    }
+    execSync("git add .", { stdio: "ignore", cwd: projectName });
+    execSync('git commit -m "Initial commit from create-dovite"', {
+      stdio: "ignore",
+      cwd: projectName,
+    });
+  } catch {
+    console.log("Git initialization skipped (is git installed and configured?).");
   }
 }
 
 module.exports = {
+  checkPrerequisites,
   createViteProject,
   updatePackageJson,
   installDependencies,
   initializeShadcn,
   initializeGit,
+  isVueTemplate,
+  isTsTemplate,
 };

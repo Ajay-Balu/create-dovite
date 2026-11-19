@@ -1,7 +1,5 @@
-/* eslint-disable react/prop-types */
-// @ts-ignore
-import { createContext, useState, useEffect, ReactNode } from "react";
-import DomoApi from "./domoAPI";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { GetCurrentUser } from "./domoApi";
 
 export interface UserContextType {
   currentUser: string;
@@ -9,58 +7,55 @@ export interface UserContextType {
   avatarKey: string;
   customer: string;
   host: string;
+  loading: boolean;
+  error: unknown;
 }
 
-export const UserContext = createContext<UserContextType | undefined>(
-  undefined
-);
+const initialState: UserContextType = {
+  currentUser: "",
+  currentUserId: "",
+  avatarKey: "",
+  customer: "",
+  host: "",
+  loading: true,
+  error: null,
+};
 
+// eslint-disable-next-line react-refresh/only-export-components
+export const UserContext = createContext<UserContextType>(initialState);
+
+/** Wrap the app with <UserProvider> to load the current Domo user once. */
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<string>("");
-  const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [avatarKey, setAvatarKey] = useState<string>("");
-  const [customer, setCustomer] = useState<string>("");
-  const [host, setHost] = useState<string>("");
+  const [state, setState] = useState<UserContextType>(initialState);
 
   useEffect(() => {
-    let isUserFetched = false;
+    let cancelled = false;
 
-    DomoApi.GetCurrentUser().then((data: any) => {
-      // console.log("User Data",data);
-
-      if (!isUserFetched) {
-        const userId = data?.userId;
-        const displayName = data?.displayName;
-        const avatarKey = data?.avatarKey;
-        const customer = data?.customer;
-        const host = data?.host;
-
-        setCurrentUser(displayName || "");
-        setCurrentUserId(userId || "");
-        setAvatarKey(avatarKey || "");
-        setCustomer(customer || "");
-        setHost(host || "");
-
-        isUserFetched = true;
-      }
-    });
+    GetCurrentUser()
+      .then((data) => {
+        if (cancelled) return;
+        setState({
+          currentUser: data.displayName || "",
+          currentUserId: data.userId || "",
+          avatarKey: data.avatarKey || "",
+          customer: String(data.customer ?? ""),
+          host: String(data.host ?? ""),
+          loading: false,
+          error: null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setState((s) => ({ ...s, loading: false, error }));
+      });
 
     return () => {
-      isUserFetched = true;
+      cancelled = true;
     };
   }, []);
 
-  return (
-    <UserContext.Provider
-      value={{
-        currentUser,
-        currentUserId,
-        avatarKey,
-        customer,
-        host,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={state}>{children}</UserContext.Provider>;
 };
+
+/** Read the current Domo user anywhere inside <UserProvider>. */
+// eslint-disable-next-line react-refresh/only-export-components
+export const useCurrentUser = () => useContext(UserContext);

@@ -1,5 +1,5 @@
 import { ref, provide, inject, onMounted } from "vue";
-import DomoApi from "./domoAPI";
+import { GetCurrentUser } from "./domoApi";
 
 // Create a symbol for the injection key
 const UserContextKey = Symbol("UserContext");
@@ -15,7 +15,7 @@ export function useUserProvider() {
   onMounted(() => {
     let isUserFetched = false;
 
-    DomoApi.GetCurrentUser().then((data) => {
+    GetCurrentUser().then((data) => {
       if (!isUserFetched) {
         const userId = data?.userId;
         const displayName = data?.displayName;

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button } from "../components/ui/button";
+import { useState, type ComponentType } from "react";
+import { Button } from "@/components/ui/button";
 import { FiBook, FiPackage, FiGithub, FiExternalLink } from "react-icons/fi";
 import "./index.css";
 
@@ -181,7 +181,7 @@ interface DocLink {
   title: string;
   url: string;
   description: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: ComponentType<{ className?: string }>;
 }
 
 const DefaultPage = () => {

@@ -1,0 +1,41 @@
+# Files Claude doesn't need to read. Keeps context small and avoids leaking secrets.
+# (Claude Code enforces reads via .claude/settings.json "permissions.deny";
+#  this file documents the same list for tools that support .claudeignore.)
+
+# Dependencies & lockfiles
+node_modules/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Build output & caches
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+*.timestamp-*.mjs
+
+# Secrets / local env
+.env
+.env.*
+*.pem
+*.key
+
+# Binary / large assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.webp
+*.mp4
+*.woff
+*.woff2
+*.ttf
+*.zip
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db

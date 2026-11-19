@@ -1,27 +1,28 @@
 # create-dovite
 
-<!-- a detailed description of the package with all the features -->
+**create-dovite** is a CLI that jumpstarts **Domo Custom Apps (pro-code apps)**. It combines the speed of **Vite** with **Tailwind CSS v4**, **shadcn/ui** components and a ready-made **Domo integration** (ryuu.js API layer + local dev proxy), so you go from zero to a running Domo app in minutes.
 
-**create-dovite** is a CLI tool designed to jumpstart the development of Domo Custom Apps. It provides a modern developer experience by combining the speed of **Vite** with the utility-first approach of **Tailwind CSS**. This starter kit comes pre-integrated with **shadcn/ui** for accessible components and includes built-in configurations for the **Domo Integrations**, ensuring a smooth transition from local development to production.
-
-# Features
+## Features
 
 - ⚡️ Vite for fast development
 - ⚛️ React and Vue support
 - 📘 TypeScript and JavaScript support
-- 🎨 Tailwind CSS for styling
-- 🎯 shadcn/ui components
-- 🔄 DOMO integration
-- 📦 Preconfigured build setup
+- 🎨 Tailwind CSS v4
+- 🎯 shadcn/ui (React) / shadcn-vue (Vue) components
+- 🔄 Domo integration: one `src/API/domoApi` file for datasets, SQL, AppDB, files, Domo AI, workflows and Code Engine
+- 🔌 Local dev proxy (`@domoinc/ryuu-proxy`) so Domo calls work on `localhost`
+- 🤖 `CLAUDE.md`, `.claudeignore` and `.claude/settings.json` in every project — Claude Code understands Domo, the manifest, the iframe constraints and the API helpers out of the box
+- 📦 `yarn upload` builds and publishes to Domo
 
 ## Prerequisites
 
-> **Note:** This package requires yarn and the DOMO CLI to be installed before use.
+> This package requires **yarn** and the **Domo CLI** (`ryuu`).
 
 ```bash
-# Install yarn and DOMO CLI if you don't have them
 npm install -g yarn ryuu
 ```
+
+- Node.js **20.19+** (required by Vite 8)
 
 ## Usage
 
@@ -31,21 +32,57 @@ yarn create dovite my-app
 
 # Using npm
 npx create-dovite my-app
+
+# Skip the template prompt
+npx create-dovite my-app --template react-ts   # react-js | react-ts | vue-js | vue-ts
 ```
 
-## Requirements
+Then:
 
-- Node.js 16.x or higher
-- npm or yarn
+```bash
+cd my-app
+domo login      # once per instance
+yarn dev        # local dev with the Domo proxy
+yarn upload     # build + domo publish
+```
 
-## For DOMO CLI installation, refer to:
+After the **first** publish, copy the `id` that Domo writes into `dist/manifest.json` back into `public/manifest.json` (see the project's `CLAUDE.md`).
 
-[DOMO CLI](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
+## What you get
+
+```
+public/manifest.json         Domo app manifest (datasets, AppDB, workflows, Code Engine)
+src/API/domoApi.(js|ts)      All Domo API calls in one place
+src/API/currentUserContext.* Current Domo user (React context / Vue composable)
+src/pages/index.*            Starter landing page
+vite.config.*                Tailwind + ryuu-proxy + "@" alias
+CLAUDE.md                    Project context for Claude Code
+```
+
+## What's new in 2.3.0
+
+- Fixed React TS build errors with current create-vite (TypeScript 7 / Vite 8): removed `baseUrl`, manifest read without JSON import, `ryuu.js` v6 built-in types
+- `dataApi` + `domoAPI` merged into a single `domoApi` file; added `startWorkflow`, `runCodeEngine`, `navigate`, `getEnv`; URL-encoding and error handling fixed
+- Removed browser-side `api.domo.com` client-credential helpers (exposed secrets) — use Code Engine instead
+- Keeps create-vite's own `build`/`lint` scripts; Vue templates no longer get a broken `eslint` script
+- Vue: removed global CSS that overrode Tailwind utilities
+- `--template` flag, project-name validation, `git init -b main`
+- `CLAUDE.md` / `.claudeignore` / `.claude/settings.json` in every template
+
+## Domo resources
+
+- [Domo CLI setup](https://developer.domo.com/portal/6hlzv1hinkq19-setup-and-installation)
+- [Domo App APIs](https://developer.domo.com/portal/8ba9aedad3679-ap-is)
+- [Domo Starter Kits](https://developer.domo.com/portal/u8w475o2245yp-starter-kits)
 
 ## Inspirations
 
 - [DOMO Starter Kits](https://developer.domo.com/portal/u8w475o2245yp-starter-kits)
 - [Vitawind](https://vitawind.vercel.app/)
+
+## Roadmap
+
+- Angular templates (JS / TS)
 
 ## License
 

@@ -1,110 +1,90 @@
 const fs = require("fs");
 const path = require("path");
 
-function copyTemplateFiles(projectName, templateType) {
-  // __dirname is .../src
-  // templates are in .../templates
-  const templateDir = path.join(__dirname, "..", "templates", templateType);
-  const destDir = projectName; // Relative to CWD
+const TEMPLATES_DIR = path.join(__dirname, "..", "templates");
 
-  if (fs.existsSync(templateDir)) {
-    console.log(`Copying ${templateType} template files...`);
-    const copyRecursive = (src, dest) => {
-      if (fs.statSync(src).isDirectory()) {
-        if (!fs.existsSync(dest)) {
-          fs.mkdirSync(dest, { recursive: true });
-        }
-        const files = fs.readdirSync(src);
-        for (const file of files) {
-          copyRecursive(path.join(src, file), path.join(dest, file));
-        }
-      } else {
-        fs.copyFileSync(src, dest);
-      }
-    };
-    copyRecursive(templateDir, destDir);
+// npm never publishes files named .gitignore/.npmrc, so templates may store
+// them with a leading underscore; they're renamed on copy.
+const RENAME_ON_COPY = {
+  _gitignore: ".gitignore",
+  _npmrc: ".npmrc",
+};
+
+// Text files in which {{PROJECT_NAME}} is replaced after copying.
+const PLACEHOLDER_FILES = ["CLAUDE.md"];
+
+function copyRecursive(src, dest) {
+  if (fs.statSync(src).isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src)) {
+      const target = RENAME_ON_COPY[entry] || entry;
+      copyRecursive(path.join(src, entry), path.join(dest, target));
+    }
   } else {
-    console.warn(`Template directory not found: ${templateDir}`);
+    fs.copyFileSync(src, dest);
+  }
+}
+
+function copyTemplateFiles(projectName, templateType) {
+  const templateDir = path.join(TEMPLATES_DIR, templateType);
+  if (!fs.existsSync(templateDir)) {
+    throw new Error(`Template directory not found: ${templateDir}`);
+  }
+
+  console.log(`\nCopying ${templateType} template files...`);
+  copyRecursive(templateDir, projectName);
+
+  const name = path.basename(projectName);
+  for (const file of PLACEHOLDER_FILES) {
+    const filePath = path.join(projectName, file);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf8");
+      fs.writeFileSync(filePath, content.split("{{PROJECT_NAME}}").join(name));
+    }
   }
 }
 
 function updateManifest(projectName) {
   const publicDir = path.join(projectName, "public");
-  const manifestJsPath = path.join(publicDir, "manifest.js");
-  const manifestJsonPath = path.join(publicDir, "manifest.json");
+  const manifestPath = path.join(publicDir, "manifest.json");
+  const name = path.basename(projectName);
 
-  if (fs.existsSync(manifestJsPath)) {
-    // Legacy/JS template handling
-    console.log("Updating manifest.js with project name...");
-    let manifestContent = fs.readFileSync(manifestJsPath, "utf8");
-    manifestContent = manifestContent.replace(
-      /name:\s*["']([^"']*)["']/g,
-      `name: "${projectName}"`
-    );
-    fs.writeFileSync(manifestJsPath, manifestContent);
-  } else if (fs.existsSync(manifestJsonPath)) {
-    // TS/JSON template handling
+  let manifest = {
+    name,
+    version: "0.0.1",
+    size: { width: 3, height: 3 },
+    mapping: [],
+    collections: [],
+    workflowMapping: [],
+    packagesMapping: [],
+  };
+
+  if (fs.existsSync(manifestPath)) {
     console.log("Updating manifest.json with project name...");
-    const manifestContent = JSON.parse(
-      fs.readFileSync(manifestJsonPath, "utf8")
-    );
-    manifestContent.name = projectName;
-    fs.writeFileSync(
-      manifestJsonPath,
-      JSON.stringify(manifestContent, null, 2)
-    );
+    manifest = { ...JSON.parse(fs.readFileSync(manifestPath, "utf8")), name };
   } else {
-    // Create if missing (fallback)
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
-    }
-    // Default to JSON for new setup
-    console.log("Creating manifest.json with project name...");
-    const basicManifest = {
-      name: projectName,
-      version: "1.0.0",
-      description: `${projectName} application`,
-    };
-    fs.writeFileSync(manifestJsonPath, JSON.stringify(basicManifest, null, 2));
+    console.log("Creating manifest.json...");
+    fs.mkdirSync(publicDir, { recursive: true });
   }
+
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 }
 
-function cleanupViteDefaults(projectName, templateType) {
-  const isVue = templateType === "vue-js" || templateType === "vue-ts";
+/** Remove create-vite demo files that the Dovite templates replace. */
+function cleanupViteDefaults(projectName) {
+  const leftovers = [
+    "src/App.css", // React demo styles
+    "src/style.css", // Vue demo styles (global, unlayered — would override Tailwind)
+    "src/assets", // demo logos / hero image
+    "src/components/HelloWorld.vue", // Vue demo component
+  ];
 
-  if (isVue) {
-    // Clean up default style.css created by Vite Vue template
-    // Remove body/#app styles that conflict with our landing page
-    const styleCssPath = path.join(projectName, "src", "style.css");
-    if (fs.existsSync(styleCssPath)) {
-      console.log("Cleaning up default style.css...");
-      let content = fs.readFileSync(styleCssPath, "utf8");
-
-      // Remove body styles block
-      content = content.replace(
-        /body\s*\{[^}]*display:\s*flex[^}]*place-items:\s*center[^}]*\}/gs,
-        ""
-      );
-
-      // Remove #app styles block
-      content = content.replace(
-        /#app\s*\{[^}]*max-width:\s*1280px[^}]*\}/gs,
-        ""
-      );
-
-      // Clean up extra whitespace
-      content = content.replace(/\n{3,}/g, "\n\n").trim();
-
-      // Write back the cleaned content (or empty string if nothing left)
-      fs.writeFileSync(styleCssPath, content + "\n");
+  for (const rel of leftovers) {
+    const target = path.join(projectName, rel);
+    if (fs.existsSync(target)) {
+      console.log(`Removing default ${rel}...`);
+      fs.rmSync(target, { recursive: true, force: true });
     }
-  }
-
-  // Remove App.css if it exists (created by Vite React template)
-  const appCssPath = path.join(projectName, "src", "App.css");
-  if (fs.existsSync(appCssPath)) {
-    console.log("Removing default App.css...");
-    fs.unlinkSync(appCssPath);
   }
 }
 

@@ -1,0 +1,10 @@
+# Files Claude doesn't need to read in this repo.
+# (Claude Code enforces reads via .claude/settings.json "permissions.deny".)
+node_modules/
+package-lock.json
+yarn.lock
+*.tgz
+*.log
+*.png
+tmp-*/
+.DS_Store

@@ -1,29 +1,42 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import path from "path";
-import { Proxy } from "@domoinc/ryuu-proxy";
-import manifest from "./public/manifest.json";
 import tailwindcss from "@tailwindcss/vite";
+import { Proxy } from "@domoinc/ryuu-proxy";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
-const config = { manifest };
-const proxy = new Proxy(config);
+const rootDir = fileURLToPath(new URL(".", import.meta.url));
+
+// manifest.json drives both the Domo app definition and the local dev proxy.
+const manifest = JSON.parse(
+  readFileSync(new URL("./public/manifest.json", import.meta.url), "utf-8")
+);
+
+// Proxies /domo/*, /data/*, /sql/* calls to your Domo instance during `yarn dev`.
+// Requires `domo login` first. AppDB/Workflows/Code Engine also need
+// `proxyId` in manifest.json (see CLAUDE.md).
+const proxy = new Proxy({ manifest });
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Relative asset URLs: the built app is served from a sub-path inside Domo.
+  base: "./",
   plugins: [
     vue(),
     tailwindcss(),
     {
       name: "ryuu-proxy",
       configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          res.status = function (code) {
-            this.statusCode = code;
-            return this;
+        // Express-style helpers some ryuu-proxy error paths expect.
+        server.middlewares.use((_req, res, next) => {
+          res.status = (code) => {
+            res.statusCode = code;
+            return res;
           };
-          res.send = function (body) {
-            this.setHeader("Content-Type", "text/plain");
-            this.end(body);
+          res.send = (body) => {
+            res.setHeader("Content-Type", "text/plain");
+            res.end(body);
           };
           next();
         });
@@ -34,7 +47,7 @@ export default defineConfig({
   define: { "process.env": {} },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": resolve(rootDir, "src"),
     },
   },
 });

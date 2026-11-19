@@ -1,7 +1,7 @@
 {
   "name": "create-dovite",
-  "version": "2.2.2",
-  "description": "Vite template featuring React, Vue, TailwindCSS, ShadCN, and DOMO integration.",
+  "version": "2.3.0",
+  "description": "Scaffold Domo pro-code (custom) apps with Vite, React or Vue (JS/TS), Tailwind CSS v4, shadcn/ui and ryuu.js — with CLAUDE.md context for AI-assisted development.",
   "main": "index.js",
   "bin": {
     "create-dovite": "index.js"
@@ -14,6 +14,12 @@
     "src",
     "index.js"
   ],
+  "scripts": {
+    "test": "node --check index.js && node --check src/setup.js && node --check src/files.js && node --check src/prompts.js && node scripts/check-templates.js"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
   "keywords": [
     "vite",
     "template",
@@ -22,7 +28,10 @@
     "domo",
     "react",
     "vue",
-    "create-vite"
+    "create-vite",
+    "domo-app",
+    "ryuu",
+    "claude-code"
   ],
   "author": "Ajay B",
   "license": "MIT",

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 
 const count = ref(0);
 
@@ -369,13 +369,9 @@ const docLinks = [
   </div>
 </template>
 
-<style>
-/* Reset and Base */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+<style scoped>
+/* Tailwind's preflight already resets margins/padding. Keep custom CSS out of
+   the global scope: unlayered rules here would override Tailwind utilities. */
 
 /* Landing Page */
 .landing-page {

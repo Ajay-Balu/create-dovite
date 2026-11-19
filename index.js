@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const { getProjectDetails } = require("./src/prompts");
 const {
+  checkPrerequisites,
   createViteProject,
   updatePackageJson,
   installDependencies,
@@ -15,39 +16,35 @@ const {
 
 async function main() {
   try {
-    const { projectName, templateType } = await getProjectDetails(
-      process.argv[2]
-    );
+    const { projectName, templateType } = await getProjectDetails();
 
+    checkPrerequisites();
+
+    // All steps take projectName and resolve paths relative to the CWD.
     createViteProject(projectName, templateType);
-
-    // Operations that modify files inside the project
-    // We pass projectName so they can resolve paths correctly relative to CWD
     updatePackageJson(projectName, templateType);
-
     installDependencies(projectName, templateType);
-
     copyTemplateFiles(projectName, templateType);
-
-    cleanupViteDefaults(projectName, templateType);
-
+    cleanupViteDefaults(projectName);
     updateManifest(projectName);
-
     initializeShadcn(projectName, templateType);
-
     initializeGit(projectName);
 
     console.log(`
-Project ${projectName} created successfully!
-To get started:
+✔ Project ${projectName} created successfully!
+
+Get started:
   cd ${projectName}
+  domo login        # once, so the dev proxy can reach your instance
   yarn dev
-  To upload to DOMO:
-  domo login
+
+Publish to Domo:
   yarn upload
-    `);
+
+Using Claude Code? CLAUDE.md in the project explains Domo, the manifest and the API helpers.
+`);
   } catch (error) {
-    console.error("Error creating project:", error.message);
+    console.error("\nError creating project:", error.message);
     process.exit(1);
   }
 }

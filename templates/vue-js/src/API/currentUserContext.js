@@ -12,26 +12,25 @@ export function useUserProvider() {
   const customer = ref("");
   const host = ref("");
 
+  // Loading/error state so components can show spinners or fallbacks.
+  const loading = ref(true);
+  const error = ref(null);
+
   onMounted(() => {
-    let isUserFetched = false;
-
-    GetCurrentUser().then((data) => {
-      if (!isUserFetched) {
-        const userId = data?.userId;
-        const displayName = data?.displayName;
-        const avatar = data?.avatarKey;
-        const cust = data?.customer;
-        const hostVal = data?.host;
-
-        currentUser.value = displayName || "";
-        currentUserId.value = userId || "";
-        avatarKey.value = avatar || "";
-        customer.value = cust || "";
-        host.value = hostVal || "";
-
-        isUserFetched = true;
-      }
-    });
+    GetCurrentUser()
+      .then((data) => {
+        currentUser.value = data.displayName || "";
+        currentUserId.value = data.userId || "";
+        avatarKey.value = data.avatarKey || "";
+        customer.value = String(data.customer ?? "");
+        host.value = String(data.host ?? "");
+      })
+      .catch((e) => {
+        error.value = e;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
   });
 
   const userContext = {
@@ -40,6 +39,8 @@ export function useUserProvider() {
     avatarKey,
     customer,
     host,
+    loading,
+    error,
   };
 
   provide(UserContextKey, userContext);

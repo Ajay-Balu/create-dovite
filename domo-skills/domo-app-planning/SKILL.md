@@ -41,10 +41,11 @@ Tags: **[Documented]** (Domo docs, see the linked skills), **[Inferred]** (reaso
 
 | If the requirement says / implies… | Recommend | Why | Read |
 |---|---|---|---|
-| Call a 3rd-party API, use an API key/secret, a service account, or a Domo **Product API** (admin, users, roles, groups, scheduled reports, dataset import…) | **Code Engine function** wired via `packagesMapping`, called with `runCodeEngine(alias, input)`. Offer to write the function + manifest entry | Browser can't hold secrets; Product APIs are CORS-blocked; Code Engine runs as the user (`codeengine.sendRequest`) or a service account (`getAccount` + axios). **Consumes no credits** [Confirmed] | `domo-code-engine`, `domo-apis` |
+| Call a 3rd-party API, use an API key/secret, a service account, or a Domo **Product API** (admin, users, roles, groups, scheduled reports, dataset import, bulk AppDB ops…) | **Code Engine function** wired via `packagesMapping`, called with `runCodeEngine(alias, input)`. Offer to write the function + manifest entry | Browser can't hold secrets; Product APIs are CORS-blocked. Inside Code Engine, `codeengine.sendRequest('/api/...')` reaches any Product API **without domain or token** [Confirmed]; Node built-ins (crypto…) available; **no credits** [Confirmed] | `domo-code-engine`, `domo-apis` |
 | A **global Code Engine package** already covers the action | Use the global package instead of custom code | Less code to own | `domo-code-engine` |
 | App is **embedded in an external website** / customer portal, or sits on a dashboard with **page filters** | Use **`queryData` / `fetchData` (Data API)**, not `fetchSqlData` | `domo.data.sql` ignores page filters [Documented]; programmatic embed filters apply to dataset queries, so SQL would bypass them [Inferred] — a correctness *and* security issue | `domo-everywhere-embed`, `domo-procode-apps` |
 | Embedded externally (any data) | Server-side **programmatic filtering** for row security; no cookie auth reliance (domo.js sends the session header); ask IdP admin to whitelist `*.domoapps.*.domo.com`; size iframe via postMessage height | Safari & others block 3rd-party cookies; client-side filters are not security | `domo-everywhere-embed` |
+| Users on **Safari, iPhone/iPad, iOS/Android in-app web views**, or locked-down corporate browsers | Ask early. Warn that cookie-based Domo features (SSO+PDP embeds, cookie sessions, embedded edit) mostly fail when cross-site cookies are blocked; choose cookie-less options (programmatic filters, header auth) and plan Safari/iOS testing | Third-party/cross-site cookies blocked [Confirmed] | `domo-everywhere-embed` |
 | Needs a **JOIN/UNION** across datasets | Build a **Magic ETL / DataSet View** output and map that one dataset | SQL API queries only the one dataset in the URL alias — no JOINs [Documented/Confirmed]; joining in the browser pulls too much data | `domo-procode-apps` |
 | Comparisons within one dataset (above average, top-N per group, latest per key) | SQL **subquery** on the same alias via `fetchSqlData` (standalone apps) | Subqueries are supported [Confirmed]; keeps the work server-side | `references/domojs-api.md` |
 | Dates, "today", time ranges, schedules, timestamps shown to users | Treat everything from Domo as **UTC**; filter/write in UTC ISO-8601, convert to the viewer's zone only for display; ask which time zone defines "day" for business rules | Domo uses UTC [Confirmed]; IST/US users see off-by-one days otherwise | `domo-procode-apps` |
@@ -71,6 +72,10 @@ Tags: **[Documented]** (Domo docs, see the linked skills), **[Inferred]** (reaso
 - "Pulling Salesforce opportunities needs an API key, which can't live in the browser. I suggest a **Code Engine** function `getOpportunities` (no credits) that the app calls via `runCodeEngine`. Want me to write the function and the `packagesMapping` entry?"
 - "Since this will be **embedded on your customer portal** with per-customer filtering, `fetchSqlData` would ignore those filters. I'll use `queryData` (Data API) instead, and the row security belongs in server-side programmatic filters. OK?"
 - "You need sales joined with targets. The SQL API can't JOIN — create a Magic ETL output (1 credit per run per output table) and I'll map that single dataset."
+
+## When you write Code Engine code
+
+Follow `domo-code-engine` → "Code structure": only the functions callers need at top level, helpers as static methods in a class, relative `/api/...` paths with `codeengine.sendRequest` (no token/domain), one object output.
 
 ## Never
 

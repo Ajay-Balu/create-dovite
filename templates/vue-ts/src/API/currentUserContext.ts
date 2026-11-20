@@ -15,6 +15,8 @@ export interface UserContextType {
   avatarKey: Ref<string>;
   customer: Ref<string>;
   host: Ref<string>;
+  loading: Ref<boolean>;
+  error: Ref<unknown>;
 }
 
 // Create a typed symbol for the injection key
@@ -29,26 +31,25 @@ export function useUserProvider(): UserContextType {
   const customer = ref<string>("");
   const host = ref<string>("");
 
+  // Loading/error state so components can show spinners or fallbacks.
+  const loading = ref<boolean>(true);
+  const error = ref<unknown>(null);
+
   onMounted(() => {
-    let isUserFetched = false;
-
-    GetCurrentUser().then((data) => {
-      if (!isUserFetched) {
-        const userId = data?.userId;
-        const displayName = data?.displayName;
-        const avatar = data?.avatarKey;
-        const cust = data?.customer;
-        const hostVal = data?.host;
-
-        currentUser.value = displayName || "";
-        currentUserId.value = userId || "";
-        avatarKey.value = avatar || "";
-        customer.value = cust || "";
-        host.value = hostVal || "";
-
-        isUserFetched = true;
-      }
-    });
+    GetCurrentUser()
+      .then((data) => {
+        currentUser.value = data.displayName || "";
+        currentUserId.value = data.userId || "";
+        avatarKey.value = data.avatarKey || "";
+        customer.value = String(data.customer ?? "");
+        host.value = String(data.host ?? "");
+      })
+      .catch((e: unknown) => {
+        error.value = e;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
   });
 
   const userContext: UserContextType = {
@@ -57,6 +58,8 @@ export function useUserProvider(): UserContextType {
     avatarKey,
     customer,
     host,
+    loading,
+    error,
   };
 
   provide(UserContextKey, userContext);

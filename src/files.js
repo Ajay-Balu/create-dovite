@@ -1,7 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 
+const { pmCommands } = require("./pm");
+const { featuresDoc } = require("./features");
+
 const TEMPLATES_DIR = path.join(__dirname, "..", "templates");
+// Files shared by every template (e.g. scripts/upload.mjs)
+const SHARED_DIR = path.join(TEMPLATES_DIR, "_shared");
 // Shared Domo skills for AI agents, copied into every project's .claude/skills/
 const SKILLS_DIR = path.join(__dirname, "..", "domo-skills");
 
@@ -12,7 +17,7 @@ const RENAME_ON_COPY = {
   _npmrc: ".npmrc",
 };
 
-// Text files in which {{PROJECT_NAME}} is replaced after copying.
+// Text files in which {{PLACEHOLDERS}} are replaced after copying.
 const PLACEHOLDER_FILES = ["CLAUDE.md", "AGENTS.md"];
 
 function copyRecursive(src, dest) {
@@ -43,24 +48,35 @@ function copySkills(projectName) {
   console.log(`Added ${skills.length} Domo skills for AI agents (.claude/skills)`);
 }
 
-function copyTemplateFiles(projectName, templateType) {
+function copyTemplateFiles(projectName, templateType, options = {}) {
   const templateDir = path.join(TEMPLATES_DIR, templateType);
   if (!fs.existsSync(templateDir)) {
     throw new Error(`Template directory not found: ${templateDir}`);
   }
 
   console.log(`\nCopying ${templateType} template files...`);
+  if (fs.existsSync(SHARED_DIR)) copyRecursive(SHARED_DIR, projectName);
   copyRecursive(templateDir, projectName);
-
   copySkills(projectName);
 
-  const name = path.basename(projectName);
+  const pm = options.pm || "npm";
+  const cmd = pmCommands(pm);
+  const addCmd = cmd.add([]).trim();
+  const values = {
+    PROJECT_NAME: path.basename(projectName),
+    PM: pm,
+    RUN: cmd.run("").trim(),
+    ADD: addCmd,
+    DLX: cmd.dlx,
+    FEATURES: featuresDoc(templateType, options, addCmd),
+  };
   for (const file of PLACEHOLDER_FILES) {
     const filePath = path.join(projectName, file);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf8");
-      fs.writeFileSync(filePath, content.split("{{PROJECT_NAME}}").join(name));
-    }
+    if (!fs.existsSync(filePath)) continue;
+    const content = fs
+      .readFileSync(filePath, "utf8")
+      .replace(/\{\{([A-Z_]+)\}\}/g, (match, key) => values[key] ?? match);
+    fs.writeFileSync(filePath, content);
   }
 }
 

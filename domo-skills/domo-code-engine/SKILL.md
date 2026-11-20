@@ -1,6 +1,6 @@
 ---
 name: domo-code-engine
-description: Domo Code Engine and packages - server-side JavaScript/Python functions for Workflows and Domo apps. Covers global vs custom packages, creating and versioning packages, the codeengine library (sendRequest, getAccount, axios), data types, limits (5 min, 1 GB, one output), permissions, and how to invoke from apps, workflows and external systems. Use when writing, wiring, debugging or choosing Code Engine functions.
+description: Domo Code Engine and packages - server-side JavaScript/Python functions for Workflows and Domo apps. Covers global vs custom packages, creating and versioning packages, the codeengine library (sendRequest for Product APIs without token or domain, getAccount, axios), Node built-in modules, code structure (helpers in a class so only real functions are exposed), data types, limits (5 min, 1 GB, one output), permissions, and how to invoke from apps, workflows and external systems. Use when writing, wiring, debugging or choosing Code Engine functions.
 ---
 
 # Domo Code Engine and Packages
@@ -29,6 +29,69 @@ browser cannot do. [Documented]
 - **Global**: library Domo maintains for every instance. Two kinds: common Domo actions via Product APIs, and small-data utility functions. Anyone with Code Engine access can use them. Cannot be deleted.
 - **Custom**: your own functions. Use when no global package covers: Domo APIs, non-Domo APIs/events, reshaping inputs/outputs between workflow steps.
 - Prefer a global package when it exists; custom code is maintenance you own.
+
+## Runtime facts [Confirmed by maintainer]
+
+- **Node.js built-in modules can be required** in JavaScript packages: `crypto`, `url`, `util`, `buffer`, `zlib`, `path`, `querystring`, etc. (the maintainer also uses `uuid`). For ids prefer `crypto.randomUUID()`. This is in addition to the documented `codeengine`, `axios`, `google-auth-library`.
+- **Product APIs need no domain and no token inside Code Engine.** The function already runs inside the instance, so `codeengine.sendRequest(method, '/api/…', body)` with a **relative `/api/...` path** is enough: no `https://<instance>.domo.com`, no `X-DOMO-Developer-Token`, no OAuth client. Calls run with the calling user's permissions. Only use a token/`axios` when targeting **another** instance or acting as a service account.
+
+## Code structure: expose only real functions [Confirmed by maintainer]
+
+Every **top-level function** in the package is picked up by *Rescan Functions* and shows up in the package UI, the Workflow step picker and the app Wiring screen (each needing descriptions and typed inputs/outputs). Keep that list clean:
+
+- Top level = only the functions callers should use (one per action).
+- Put helpers (HTTP wrapper, pagination, batching, mapping, validation) as **static methods of a class** (e.g. `class Helpers`); top-level functions can call them, and they don't appear as package functions.
+- Don't create one-off wrapper functions "just in case"; add a public function only when an app/workflow actually calls it.
+
+```javascript
+const codeengine = require('codeengine');
+const crypto = require('crypto');            // Node built-ins are available [Confirmed]
+
+// Helpers live as static methods: Code Engine does not list class members as
+// package functions, so the function picker (UI, Workflows, app wiring) only
+// shows the real entry points below.
+class Helpers {
+  static async request(method, url, body = null) {
+    console.log(`[DEBUG] ${method.toUpperCase()} ${url}`);
+    try {
+      return await codeengine.sendRequest(method, url, body);   // Product API, no domain/token needed
+    } catch (error) {
+      console.error(`[ERROR] ${method.toUpperCase()} ${url}:`, error);
+      throw error;
+    }
+  }
+
+  static async listDocumentIds(collectionId) {
+    const docs = await Helpers.request('get', `/api/datastores/v1/collections/${collectionId}/documents`);
+    return docs.map((d) => d.id);
+  }
+
+  static chunk(items, size) {
+    const out = [];
+    for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+    return out;
+  }
+}
+
+// Public function #1 (shows up in the package): delete every document in a collection, 50 ids per call.
+async function bulkDeleteCollection(collectionId) {
+  const ids = await Helpers.listDocumentIds(collectionId);
+  const deleted = [];
+  const failedBatches = [];
+
+  for (const [n, batch] of Helpers.chunk(ids, 50).entries()) {
+    const params = batch.map((id) => `ids=${encodeURIComponent(id)}`).join('&');
+    try {
+      const result = await Helpers.request('delete', `/api/datastores/v1/collections/${collectionId}/documents/bulk?${params}`);
+      if (Array.isArray(result)) deleted.push(...result);
+      else if (result) deleted.push(result);
+    } catch (error) {
+      failedBatches.push(n + 1);   // keep going, report at the end
+    }
+  }
+  return { total: ids.length, deleted, failedBatches, runId: crypto.randomUUID() };   // ONE object output
+}
+```
 
 ## Anatomy of a custom package function [Documented unless marked]
 
@@ -62,7 +125,7 @@ After writing code: **Rescan Functions**, then in Function Configuration set eac
 | `getPersonDetails(personId)` | GET `/api/content/v3/users/{id}?includeDetails=true` | User lookups |
 | `googleAuthLibrary` | JWT/GoogleAuth/OAuth2Client | Google APIs (service account private keys often lose newlines; restore `\n`) |
 
-Rule of thumb: Domo API as the user -> `sendRequest`; run under a service account, other instance, or external API -> `axios` + `getAccount`.
+Rule of thumb: Domo API as the user -> `sendRequest('/api/...')` (same instance: no domain, no token) [Confirmed]; run under a service account, other instance, or external API -> `axios` + `getAccount`.
 
 ## Python [Documented]
 Runtime supports Python functions. Available modules: standard library (asyncio, csv, json, os, re, sqlite3, subprocess, urllib, etc.) plus third-party **boto3, botocore, certifi, numpy, pandas, requests**. The docs show no Python example of the `codeengine` helper library; Python usage of it is [Unverified].
@@ -90,6 +153,8 @@ Two layers: account-level grants (**Create Code Engine Packages**, **Manage Code
 ## Best practices
 
 - Keep functions small, single-purpose, typed. Return one object with named fields.
+- Helpers go in a class (static methods) so only real entry points become package functions. [Confirmed]
+- Batch large Product API operations (e.g. 50 ids per bulk call) and report failed batches in the output instead of aborting the whole run.
 - Credentials only via Domo **Accounts** + `getAccount`; never hardcode.
 - SQL passed as strings is **case sensitive**. [Documented]
 - When mappings break, check data types first (lists/objects are the usual culprit) and that grants + package permissions exist. [Documented]

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { getProjectDetails } = require("./src/prompts");
+const { getProjectDetails, storeName } = require("./src/prompts");
 const {
   checkPrerequisites,
   createViteProject,
@@ -13,33 +13,44 @@ const {
   updateManifest,
   cleanupViteDefaults,
 } = require("./src/files");
+const { applyFeatures } = require("./src/features");
+const { pmCommands } = require("./src/pm");
 
 async function main() {
   try {
-    const { projectName, templateType } = await getProjectDetails();
+    const { projectName, templateType, pm, store, router } =
+      await getProjectDetails();
+    const features = { store, router };
 
-    checkPrerequisites();
+    console.log(
+      `\n${projectName}: ${templateType} · ${pm} · ` +
+        `${store ? storeName(templateType) : "no store"} · ${router ? "hash routing" : "no routing"}`
+    );
+
+    checkPrerequisites(pm);
 
     // All steps take projectName and resolve paths relative to the CWD.
-    createViteProject(projectName, templateType);
+    createViteProject(projectName, templateType, pm);
     updatePackageJson(projectName, templateType);
-    installDependencies(projectName, templateType);
-    copyTemplateFiles(projectName, templateType);
+    installDependencies(projectName, templateType, pm, features);
+    copyTemplateFiles(projectName, templateType, { pm, ...features });
+    applyFeatures(projectName, templateType, features);
     cleanupViteDefaults(projectName);
     updateManifest(projectName);
-    initializeShadcn(projectName, templateType);
+    initializeShadcn(projectName, templateType, pm);
     initializeGit(projectName);
 
+    const run = (script) => pmCommands(pm).run(script);
     console.log(`
 ✔ Project ${projectName} created successfully!
 
 Get started:
   cd ${projectName}
   domo login        # once, so the dev proxy can reach your instance
-  yarn dev
+  ${run("dev")}
 
-Publish to Domo:
-  yarn upload
+Publish to Domo (bumps the manifest version automatically):
+  ${run("upload")}
 
 AI agents (Claude Code, Cursor, Codex, Antigravity…): AGENTS.md + .claude/skills
 teach them Domo. Describe the app you want — they'll plan, recommend, then build.

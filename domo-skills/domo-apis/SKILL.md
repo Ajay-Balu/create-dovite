@@ -51,14 +51,14 @@ curl -v -u {CLIENT_ID}:{CLIENT_SECRET} "https://api.domo.com/oauth/token?grant_t
 - Coverage: Activity Log, AI Services, Alerts, AppDB, Beast Modes, Cards, Certified Content, Code Engine, Connectors, Data Accounts, DataSets, Files, Groups, Pages, Roles Governance, Search, Task Center, Users, Workflows, Scheduled Reports, SCIM, Export to S3, Federated migration, etc. Many endpoints lack full docs; contact your CSM for undocumented functionality.
 - Example: run a Code Engine function from outside Domo:
   `POST https://{instance}.domo.com/api/codeengine/v2/packages/{packageId}/versions/{version}/functions/{functionName}` with body `{"inputVariables": {...}, "settings": {"getLogs": true}}` and the developer-token header.
-- Inside Code Engine use `codeengine.sendRequest` instead of raw tokens (runs as the calling user).
+- Inside Code Engine use `codeengine.sendRequest('GET', '/api/...')` instead of raw tokens: no instance URL, no `X-DOMO-Developer-Token` needed (runs as the calling user) [Confirmed]. This is the easiest way to give an app Product-API power.
 
 ## Which one should I use? (decision path)
 
 1. Code is running in the user's browser inside a Domo app? -> **App Framework API via domo.js**. Need something it cannot do (Product API, external API, secrets)? -> **Code Engine function**, called from the app.
 2. Server/script/CI/Jupyter outside Domo, endpoint exists in Platform list? -> **Platform OAuth** with the narrowest scopes.
 3. Needs a capability only in Product APIs (e.g. roles governance, scheduled reports, AppDB datastores admin)? -> **Product API + developer token on a server**, ideally wrapped in a Code Engine function or backend you control, token stored as a secret.
-4. Inside Code Engine/Workflows calling Domo? -> `codeengine.sendRequest` (user auth) or `codeengine.axios` + account credentials (service account, cross-instance).
+4. Inside Code Engine/Workflows calling Domo? -> `codeengine.sendRequest(method, '/api/...')`: **Product APIs with a relative path, no domain and no developer token** (it already runs inside the instance, as the calling user) [Confirmed]. Use `codeengine.axios` + account credentials only for a service account or another instance.
 5. Embedding to external viewers? -> Platform OAuth (Embed Token API) from **your server** (see `domo-everywhere-embed`).
 
 ## Security rules for agents

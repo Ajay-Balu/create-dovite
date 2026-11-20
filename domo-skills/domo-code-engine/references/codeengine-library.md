@@ -8,15 +8,20 @@ Sources: javascript-libraries.md, creating-packages.md, global-vs-custom-package
 | `codeengine` | `require("codeengine")` | Accounts, execution details, user lookups, Domo API calls |
 | `axios` | `require("axios")` or `codeengine.axios` | External HTTP |
 | `googleAuthLibrary` | `require("google-auth-library")` or `codeengine.googleAuthLibrary` | Google auth (JWT, GoogleAuth, OAuth2Client) |
-No versions listed. Only this limited set exists.
+No versions listed. Third-party npm packages beyond these are not available.
+
+**Node.js built-in modules are available** [Confirmed by maintainer]: `require('crypto')`, `require('url')`, `require('util')`, `require('buffer')`, `require('zlib')`, `require('path')`, … (maintainer also cites `uuid`). Use `crypto.randomUUID()`, `crypto.createHash('sha256')`, `crypto.createHmac(...)` for ids, hashing and webhook signatures.
 
 ## Method details
 - `getAccount(accountAlias)`: mapped account with decrypted credentials and a current access token; caller must have access; expired tokens are refreshed first; for Account-type inputs pass the account's ID instead of an alias. Credentials are in `account.properties` (property names depend on the account type; the docs' two examples differ: check yours).
 - `getExecutionInformation()`: synchronous (not a Promise).
 - `getUserAuthorization(accountTemplateId)`: 404 if the user never authorized that template.
-- `sendRequest(method, url, body, headers, contentType)`: product APIs as the running user.
+- `sendRequest(method, url, body, headers, contentType)`: product APIs as the running user. Use a **relative** `/api/...` path; no instance domain, no `X-DOMO-Developer-Token` (the function already runs inside the instance) [Confirmed]. Example: `/api/datastores/v1/collections/{collectionId}/documents` for AppDB through the Product API.
 
-## Recipe A: Domo API as the user
+## Structure rule
+Only top-level functions become package functions. Put helpers in `class Helpers { static … }` so the package/Workflow/Wiring UIs list only real entry points. Full example in `../SKILL.md` ("Code structure").
+
+## Recipe A: Domo API as the user (no token, no domain)
 ```javascript
 const codeengine = require('codeengine');
 async function getDatasetStatus(dataSetId) {

@@ -1,6 +1,6 @@
 {
   "name": "create-dovite",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Scaffold Domo pro-code (custom) apps with Vite, React or Vue (JS/TS), Tailwind CSS v4, shadcn/ui and ryuu.js — with CLAUDE.md context for AI-assisted development.",
   "main": "index.js",
   "bin": {
@@ -11,12 +11,14 @@
     "templates/react-ts",
     "templates/vue-js",
     "templates/vue-ts",
+    "templates/_addons",
+    "templates/_shared",
     "domo-skills",
     "src",
     "index.js"
   ],
   "scripts": {
-    "test": "node --check index.js && node --check src/setup.js && node --check src/files.js && node --check src/prompts.js && node scripts/check-templates.js"
+    "test": "node --check index.js && node --check src/setup.js && node --check src/files.js && node --check src/prompts.js && node --check src/pm.js && node --check src/features.js && node scripts/check-templates.js"
   },
   "engines": {
     "node": ">=20.19"

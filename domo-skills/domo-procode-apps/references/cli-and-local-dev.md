@@ -36,9 +36,10 @@ domo publish          # on main you may add: domo release -v latest
 Secrets `DOMO_INSTANCE`, `DOMO_TOKEN` in GitHub Actions/GitLab/Jenkins/Azure DevOps; separate staging vs production instances and tokens; protected branches; run tests first; rotate tokens; never commit tokens. Auth failures: token alphanumeric, >=20 chars, not expired, correct instance. Publish failures: valid manifest, you are owner, files committed.
 
 ## Vite/React projects (create-dovite style) [Inferred from user's repo, not Domo docs]
-- `yarn dev` = Vite dev server with `@domoinc/ryuu-proxy` middleware reading `public/manifest.json` (Vite default `base`, so asset URLs start with `/`).
-- `yarn upload` = `vite build` + `domo publish` from `dist/`. Vite copies `public/` (manifest.json, thumbnail.png) into `dist/`, so **edit `public/manifest.json`**, never `dist/manifest.json`.
-- After the first publish, copy the `id` Domo writes into `dist/manifest.json` back into `public/manifest.json`, or the next build drops it and creates a new design.
+- `<pm> dev` (npm run / yarn / pnpm — check `AGENTS.md` for the project's package manager) = Vite dev server with `@domoinc/ryuu-proxy` middleware reading `public/manifest.json` (Vite default `base`, so asset URLs start with `/`).
+- `<pm> upload` (`scripts/upload.mjs`): **auto-bumps `version` in `public/manifest.json`** (patch +1, patch/minor roll over after 9: 0.0.9 → 0.1.0, 0.9.9 → 1.0.0, major unbounded), builds, runs `domo publish` from `dist/`, rolls the bump back on failure, and copies the design `id` back into `public/manifest.json` after the first publish. Flags: `-- --no-bump`, `-- --dry-run`. Don't bump the version by hand in these projects.
+- Vite copies `public/` (manifest.json, thumbnail.png) into `dist/`, so **edit `public/manifest.json`**, never `dist/manifest.json`.
+- If you publish manually (`domo publish` in `dist/`), copy the `id` Domo writes into `dist/manifest.json` back into `public/manifest.json`, or the next build drops it and creates a new design. The upload script does this for you.
 - `/domo/environment/v1` returning 401 "Not authenticated" without `domo login` is expected.
 - Keep all Domo calls in one `src/API/domoApi.*` module; browser code must never call `api.domo.com` with client credentials (use Code Engine).
 

@@ -12,4 +12,4 @@ AGENTS.md (shared with Cursor, Codex, Antigravity and other agents):
   recommendations before writing code.
 - Use plan mode for multi-file features; confirm the plan (and any Code Engine,
   Workflow or embed recommendations) with the developer first.
-- Run `yarn build` before reporting a change as done.
+- Run `{{RUN}} build` before reporting a change as done.

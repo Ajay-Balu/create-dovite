@@ -33,6 +33,7 @@ Three filter tiers (inner tiers can only narrow what outer tiers allow): [Docume
 
 ## Hard limits and gotchas
 
+- **Safari / iOS / cross-site-cookie blocking [Confirmed by maintainer]:** Domo's classic embed and app auth rely on third-party cookies. In Safari (all versions), iOS apps/WKWebViews, and any browser where cross-site cookies or cross-site tracking are disabled, **most cookie-based features stop working** (SSO+PDP embeds, app sessions via `ryuu_sid` cookie, embedded edit, nested Domo iframes). Design for that from day one: cookie-less **programmatic filtering** for embeds, header-based app auth (domo.js does it; keep ryuu.js current), `public-assets` + `ryuu_sid` for static files, and **test on Safari and on an iPhone/iPad** before go-live.
 - Programmatic filters travel in a **JWT; browsers cap ~8 KB**. Huge `IN` lists overflow. Fix: add an aggregated/entitlement column in the data. [Documented]
 - Omit `datasourceId`/`datasourceIds` and the filter hits **every dataset on the page**; if a dataset lacks the column, its cards fail to render. Always scope. [Documented]
 - Inline Dataset Editor and Form Viewer apps cannot use programmatic filters (they rely on OAuth). [Documented]
@@ -45,7 +46,7 @@ Three filter tiers (inner tiers can only narrow what outer tiers allow): [Docume
 
 ## Embedding Domo *apps* (custom apps) inside other sites
 
-Safari blocks third-party cookies, so do not rely on cookie auth. Combine: [Documented]
+Safari/iOS (and browsers with cross-site cookies disabled) block third-party cookies, so most cookie-based behavior breaks there [Confirmed]. Do not rely on cookie auth. Combine: [Documented]
 1. **Header auth**: read `window.__RYUU_SID__`, send `X-DOMO-Ryuu-Session`. The JS file must live in a `public-assets` folder. (domo.js does this automatically.)
 2. **public-assets** folder for static, non-sensitive files (no auth; no Domo API access; no business logic).
 3. **`ryuu_sid` query param** appended inside app code for non-sensitive resource URLs.

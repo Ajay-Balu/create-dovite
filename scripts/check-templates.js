@@ -24,10 +24,10 @@ const REQUIRED = {
     "public/thumbnail.png",
     "src/index.css",
   ],
-  "react-js": ["src/API/domoApi.js", "src/API/currentUserContext.jsx", "src/App.jsx", "src/pages/index.jsx", "vite.config.js", "jsconfig.json"],
-  "react-ts": ["src/API/domoApi.ts", "src/API/currentUserContext.tsx", "src/App.tsx", "src/pages/index.tsx", "vite.config.ts", "tsconfig.json", "tsconfig.app.json"],
-  "vue-js": ["src/API/domoApi.js", "src/API/currentUserContext.js", "src/App.vue", "src/main.js", "src/pages/index.vue", "vite.config.js", "jsconfig.json"],
-  "vue-ts": ["src/API/domoApi.ts", "src/API/currentUserContext.ts", "src/App.vue", "src/main.ts", "src/pages/index.vue", "vite.config.ts", "tsconfig.json", "tsconfig.app.json"],
+  "react-js": ["src/API/domoApi.js", "src/API/currentUserContext.jsx", "src/pages/index.jsx", "vite.config.js", "jsconfig.json"],
+  "react-ts": ["src/API/domoApi.ts", "src/API/currentUserContext.tsx", "src/pages/index.tsx", "vite.config.ts", "tsconfig.json", "tsconfig.app.json"],
+  "vue-js": ["src/API/domoApi.js", "src/API/currentUserContext.js", "src/pages/index.vue", "vite.config.js", "jsconfig.json"],
+  "vue-ts": ["src/API/domoApi.ts", "src/API/currentUserContext.ts", "src/pages/index.vue", "vite.config.ts", "tsconfig.json", "tsconfig.app.json"],
 };
 
 const walk = (dir) =>
@@ -104,6 +104,33 @@ for (const t of TEMPLATE_VALUES) {
     if (referenceExports === null) referenceExports = { t, names };
     else if (names !== referenceExports.names)
       fail(`${t}: domoApi exports differ from ${referenceExports.t}\n  ${names}\n  ${referenceExports.names}`);
+  }
+}
+
+// --- shared files + add-ons (store/router) for every template
+if (!fs.existsSync(path.join(root, "templates/_shared/scripts/upload.mjs"))) fail("templates/_shared/scripts/upload.mjs missing");
+const ADDONS = {
+  "react-ts": { store: ["src/store/index.ts", "src/store/hooks.ts", "src/store/appSlice.ts"], router: ["src/router.tsx"] },
+  "react-js": { store: ["src/store/index.js", "src/store/hooks.js", "src/store/appSlice.js"], router: ["src/router.jsx"] },
+  "vue-ts": { store: ["src/stores/app.ts"], router: ["src/router/index.ts"] },
+  "vue-js": { store: ["src/stores/app.js"], router: ["src/router/index.js"] },
+};
+for (const [t, features] of Object.entries(ADDONS)) {
+  for (const [feature, files] of Object.entries(features)) {
+    for (const f of files) {
+      if (!fs.existsSync(path.join(root, "templates/_addons", t, feature, f))) fail(`_addons/${t}/${feature}: missing ${f}`);
+    }
+  }
+}
+// placeholders in templates must be ones files.js knows
+const KNOWN = new Set(["PROJECT_NAME", "PM", "RUN", "ADD", "DLX", "FEATURES"]);
+for (const t of TEMPLATE_VALUES) {
+  for (const f of ["AGENTS.md", "CLAUDE.md"]) {
+    const p = path.join(root, "templates", t, f);
+    if (!fs.existsSync(p)) continue;
+    for (const m of fs.readFileSync(p, "utf8").matchAll(/\{\{(\w+)\}\}/g)) {
+      if (!KNOWN.has(m[1])) fail(`${t}/${f}: unknown placeholder {{${m[1]}}}`);
+    }
   }
 }
 

@@ -25,7 +25,7 @@ using an app session ID. A published **App Design** produces many **App Instance
 | App Catalyst | AI-assisted app creation; projects can jump straight to local dev | See `Apps/App-Catalyst.md` |
 | Mason | Never for new work | Cannot be created/edited after 2026-10-14 |
 
-**create-dovite projects** (`yarn create dovite <name>`): Vite + Tailwind + shadcn + ryuu.js ^6 + ryuu-proxy. All Domo calls live in `src/API/domoApi.*` (datasets, SQL, AppDB, files, AI, workflows, Code Engine, navigate, events); add new calls there. Use `yarn dev` / `yarn upload` instead of `domo dev` / `domo publish` (see AGENTS.md in the project). [Confirmed]
+**create-dovite projects** (`npm create dovite@latest <name>` / `yarn create dovite` / `pnpm create dovite`): Vite + Tailwind + shadcn + ryuu.js ^6 + ryuu-proxy, chosen package manager, optional Redux Toolkit/Pinia and hash routing (see the project's `AGENTS.md`). All Domo calls live in `src/API/domoApi.*` (datasets, SQL, AppDB, files, AI, workflows, Code Engine, navigate, events); add new calls there. Use `<pm> dev` / `<pm> upload` instead of `domo dev` / `domo publish` (see AGENTS.md in the project). [Confirmed]
 
 ## The best way to do things (recommended patterns)
 
@@ -57,6 +57,7 @@ using an app session ID. A published **App Design** produces many **App Instance
 - **AppDB query language [Confirmed]:** MongoDB query syntax. Fields live under `content.`: `{ "content.status": "open" }`, comparison/logic operators such as `$eq $ne $gt $gte $lt $lte $in $nin $and $or $exists`, dates as `{ "$date": "2026-11-01T00:00:00Z" }`; updates via `partialUpdate` with `$set $inc $push`. Aggregations (groupby/count/sum/avg/min/max/unwind) are query-string options, not a Mongo aggregation pipeline. Operators beyond those listed: test before relying on them.
 - `onFiltersUpdated` first registration clears all parent page filters. [Documented]
 - AppDB dataset sync can take ~15 min to appear; type mismatch is the top sync failure (use Domo types: STRING, LONG, DECIMAL, DOUBLE, DATE, DATETIME, not TS types). [Documented]
+- Safari, iOS apps/web views and browsers with cross-site cookies disabled break most cookie-based Domo features (embeds, cookie sessions); rely on domo.js header auth and test there. See `domo-everywhere-embed`. [Confirmed]
 - Public JS in `public-assets/` has no Domo API access and is unauthenticated; no secrets there. [Documented]
 - Multiple copies of one app instance share the `ryuu_sid` cookie; send the session via header/query (domo.js does) to avoid stale filters. [Documented]
 - Aggregated server queries cannot be sorted/limited server-side in the documented example; sort/slice client-side. [Documented]
@@ -97,7 +98,7 @@ and ask Domo App Support (domoappsupport@domo.com) about device support. Full gu
 ```bash
 npm i -g ryuu                       # Node 18+ recommended
 domo login -i your.instance.domo.com            # or: domo login -i ... -t <developer-token>
-domo init my-app                    # or yarn create dovite my-app
+domo init my-app                    # or npm create dovite@latest my-app
 cd my-app && domo dev               # http://localhost:3000, live reload, data proxy
 domo publish                        # creates/updates the design; writes id into manifest
 # create a card from the design, wire datasets, copy the card id -> manifest "proxyId"
@@ -105,7 +106,7 @@ domo publish                        # creates/updates the design; writes id into
 
 Data queries in `domo dev` only work after first publish + `proxyId`. Details: `references/cli-and-local-dev.md`.
 
-create-dovite equivalent: `domo login` -> `yarn dev` (Vite on :5173 with ryuu-proxy) -> `yarn upload` (build + `domo publish` from `dist/`). After the first publish copy `id` from `dist/manifest.json` into `public/manifest.json`, and set `proxyId` there too (the build copies `public/` into `dist/`).
+create-dovite equivalent: `domo login` -> `<pm> dev` (Vite on :5173 with ryuu-proxy) -> `<pm> upload` (`scripts/upload.mjs`): **auto-bumps `version` in `public/manifest.json`** (patch +1, patch/minor roll over after 9: 0.0.9 → 0.1.0, 0.9.9 → 1.0.0, major unbounded), builds, runs `domo publish` from `dist/`, rolls the bump back on failure, and copies the design `id` back into `public/manifest.json` after the first publish. Flags: `-- --no-bump`, `-- --dry-run`. Don't bump the version by hand in these projects. Set `proxyId` in `public/manifest.json` (the build copies `public/` into `dist/`).
 
 ## Do / Don't checklist
 

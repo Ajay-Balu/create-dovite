@@ -12,14 +12,15 @@
 - 🔄 Domo integration: one `src/API/domoApi` file for datasets, SQL, AppDB, files, Domo AI, workflows and Code Engine
 - 🔌 Local dev proxy (`@domoinc/ryuu-proxy`) so Domo calls work on `localhost`
 - 🤖 AI-agent ready: `AGENTS.md`, `CLAUDE.md` and 7 Domo skills (`.claude/skills/`) in every project — Claude Code, Cursor, Codex and Antigravity learn Domo, plan the architecture, recommend Code Engine / Data API / AppDB where it fits, then build
-- 📦 `yarn upload` builds and publishes to Domo
+- 🧰 Your choice of **npm, yarn or pnpm**, optional **Redux Toolkit** (React) / **Pinia** (Vue), and optional **hash routing** (react-router / vue-router)
+- 📦 `upload` script bumps the manifest version (0.0.1 → … → 0.0.9 → 0.1.0 …), builds, publishes to Domo, rolls back on failure and saves the design id
 
 ## Prerequisites
 
-> This package requires **yarn** and the **Domo CLI** (`ryuu`).
+> Requires the **Domo CLI** (`ryuu`) and the package manager you choose (npm, yarn or pnpm).
 
 ```bash
-npm install -g yarn ryuu
+npm install -g ryuu
 ```
 
 - Node.js **20.19+** (required by Vite 8)
@@ -27,26 +28,37 @@ npm install -g yarn ryuu
 ## Usage
 
 ```bash
-# Using yarn (recommended)
+npm create dovite@latest my-app
+# or
 yarn create dovite my-app
-
-# Using npm
-npx create-dovite my-app
-
-# Skip the template prompt
-npx create-dovite my-app --template react-ts   # react-js | react-ts | vue-js | vue-ts
+# or
+pnpm create dovite my-app
 ```
 
-Then:
+You'll be asked for the template, package manager, state management and routing. Or pass flags:
+
+```bash
+npx create-dovite my-app -t react-ts --pm pnpm --store --router
+```
+
+| Flag | Values | Default |
+| --- | --- | --- |
+| `-t, --template` | `react-js`, `react-ts`, `vue-js`, `vue-ts` | asked |
+| `--pm` | `npm`, `yarn`, `pnpm` | the one you ran create-dovite with |
+| `--store` / `--no-store` | Redux Toolkit (React) / Pinia (Vue) | no |
+| `--router` / `--no-router` | hash routing (react-router / vue-router) | no |
+| `-y, --yes` | accept defaults for anything not passed | |
+
+Then (shown with npm; use `yarn …` / `pnpm …` if you chose those):
 
 ```bash
 cd my-app
-domo login      # once per instance
-yarn dev        # local dev with the Domo proxy
-yarn upload     # build + domo publish
+domo login          # once per instance
+npm run dev         # local dev with the Domo proxy
+npm run upload      # bump manifest version, build, domo publish
 ```
 
-After the **first** publish, copy the `id` that Domo writes into `dist/manifest.json` back into `public/manifest.json` (see the project's `CLAUDE.md`).
+`upload` bumps `version` in `public/manifest.json` (patch +1; patch and minor roll over after 9: `0.0.9 → 0.1.0`, `0.9.9 → 1.0.0`), restores it if the build or publish fails, and after the first publish copies the design `id` into `public/manifest.json` for you. Use `npm run upload -- --no-bump` to republish the same version or `-- --dry-run` to preview the next one.
 
 ## What you get
 
@@ -56,12 +68,18 @@ src/API/domoApi.(js|ts)      All Domo API calls in one place
 src/API/currentUserContext.* Current Domo user (React context / Vue composable)
 src/pages/index.*            Starter landing page
 vite.config.*                Tailwind + ryuu-proxy + "@" alias
+scripts/upload.mjs           Version bump + build + publish
+src/store/ | src/stores/     Redux Toolkit / Pinia (optional)
+src/router.* | src/router/   Hash routing (optional)
 AGENTS.md / CLAUDE.md        Instructions for AI coding agents
 .claude/skills/              Domo skills (planning, pro-code apps, APIs, Code Engine, embed, credits)
 ```
 
 ## What's new in 2.4.0
 
+- Choose **npm, yarn or pnpm**; optional **Redux Toolkit** / **Pinia**; optional **hash routing**; new CLI flags (`--pm`, `--store`, `--router`, `-y`)
+- `upload` auto-bumps the manifest version, rolls back on failure and saves the design id
+- `main` / `App` now wire the current-user provider automatically
 - Domo agent skills (`domo-skills/`) copied into every project's `.claude/skills/`, plus `AGENTS.md` for Cursor / Codex / Antigravity; agents plan and recommend (Code Engine, Data API vs SQL for embeds, AppDB, Workflows…) before building
 - New `queryData` (page-filter aware Data API), `onDataUpdated`, `onFiltersUpdated`; manifest gets `fullpage` and device-permission flags
 - Domo rules for agents: SQL API = one dataset per call (no JOINs, subqueries OK), Domo times are UTC, AppDB uses MongoDB query syntax

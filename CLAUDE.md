@@ -1,7 +1,7 @@
 # create-dovite — CLI repository
 
-`create-dovite` is an npm "create" CLI (`yarn create dovite <name>` /
-`npx create-dovite <name>`) that scaffolds **Domo pro-code (custom) apps**:
+`create-dovite` is an npm "create" CLI (`npm create dovite@latest <name>` /
+`yarn create dovite` / `pnpm create dovite`) that scaffolds **Domo pro-code (custom) apps**:
 it runs `create-vite`, adds Domo + Tailwind dependencies, copies a template on
 top, sets up shadcn, and initialises git — so a developer can start building a
 Domo app in minutes.
@@ -19,27 +19,38 @@ For Domo platform questions while working on this repo, read
 ```
 index.js                  CLI entry (bin). Orchestrates the steps below.
 src/
-  prompts.js              Args (`<name>`, `--template/-t`) + interactive prompts, name validation
+  prompts.js              Args/flags + interactive prompts (name, template, pm, store, router)
+  pm.js                   npm / yarn / pnpm command table (create, install, add, dlx, run)
   setup.js                Shell steps: prerequisites, create-vite, package.json, deps, shadcn, git
-  files.js                Copy template, {{PROJECT_NAME}} placeholders, manifest, remove Vite demo files
+  features.js             Store/router add-ons, generated main + App, AGENTS.md "State & routing" text
+  files.js                Copy _shared + template + skills, {{PLACEHOLDERS}}, manifest, remove Vite demo files
 templates/
+  _shared/                Copied into every project (scripts/upload.mjs)
+  _addons/<template>/store|router/   Copied only when that feature is chosen
   react-js/  react-ts/  vue-js/  vue-ts/     Files copied OVER the create-vite output
 domo-skills/              Source of truth for the Domo agent skills (copied to <project>/.claude/skills/)
 scripts/check-templates.js  Offline template checks (`npm test`, runs in CI)
-.github/workflows/npm-publish.yml   test on push/PR, publish on GitHub release
+.github/workflows/npm-publish.yml   test on push/PR; publish when package.json version is new (or on release)
 ```
 
 ## Scaffold pipeline (index.js)
 
-1. `getProjectDetails()` — name + template (args or prompts)
-2. `checkPrerequisites()` — yarn required, Domo CLI warned
-3. `createViteProject()` — `yarn create vite <name> --template <vite-template> --no-interactive`
-4. `updatePackageJson()` — keeps create-vite's scripts, adds `upload`
-5. `installDependencies()` — `ryuu.js@^6 @domoinc/ryuu-proxy@^5 tailwindcss @tailwindcss/vite` (+ `react-icons` for React)
-6. `copyTemplateFiles()` — template overwrites Vite files; `_gitignore` → `.gitignore`; copies `domo-skills/*/` → `.claude/skills/`; `{{PROJECT_NAME}}` replaced in CLAUDE.md/AGENTS.md
+1. `getProjectDetails()` — name, template, package manager (default: the one that ran the CLI),
+   store (Redux Toolkit / Pinia, default no), router (hash, default no). Flags:
+   `-t`, `--pm`, `--store/--no-store`, `--router/--no-router`, `-y`, `-h`
+2. `checkPrerequisites(pm)` — chosen pm required, Domo CLI warned
+3. `createViteProject()` — `<pm> create vite <name> --template <vite-template> --no-interactive`
+4. `updatePackageJson()` — keeps create-vite's scripts, adds `upload: node scripts/upload.mjs`
+5. `installDependencies()` — `ryuu.js@^6 @domoinc/ryuu-proxy@^5 tailwindcss @tailwindcss/vite`
+   (+ `react-icons` for React, + `@reduxjs/toolkit react-redux` / `pinia`, + `react-router` / `vue-router`)
+6. `copyTemplateFiles()` — `_shared` then template over Vite files; `_gitignore` → `.gitignore`;
+   `domo-skills/*/` → `.claude/skills/`; placeholders `{{PROJECT_NAME}} {{PM}} {{RUN}} {{ADD}} {{DLX}} {{FEATURES}}`
+   in CLAUDE.md/AGENTS.md
+6b. `applyFeatures()` — copies `_addons/<template>/{store,router}`, writes `src/main.*` and `src/App.*`
+   (providers: store → `UserProvider`/`useUserProvider` → router)
 7. `cleanupViteDefaults()` — removes `src/App.css`, `src/style.css`, `src/assets`, `HelloWorld.vue`
 8. `updateManifest()` — sets `name` in `public/manifest.json`
-9. `initializeShadcn()` — `npx shadcn(-vue)@latest init` + `add button` (interactive; failure is non-fatal but prints next steps)
+9. `initializeShadcn()` — `<npx|pnpm dlx> shadcn(-vue)@latest init` + `add button` (interactive; failure is non-fatal but prints next steps)
 10. `initializeGit()` — `git init -b main` + first commit
 
 ## What every template contains
@@ -53,6 +64,8 @@ scripts/check-templates.js  Offline template checks (`npm test`, runs in CI)
 | `src/API/currentUserContext.*` | React context + `useCurrentUser()` / Vue `useUserProvider()` + `useUserContext()` |
 | `src/pages/index.*` | Landing page; imports `@/components/ui/button` (created by shadcn) |
 | `src/index.css` | `@import "tailwindcss";` |
+| `scripts/upload.mjs` (from `_shared`) | `upload` script: manifest version bump (patch +1, roll over after 9), build, `domo publish`, rollback on failure, saves design `id` |
+| `src/main.*`, `src/App.*` | **Generated** by `src/features.js` (not template files) |
 | `AGENTS.md` | Agent instructions: planning protocol, skill routing table, iframe rules, manifest, API table, publishing |
 | `CLAUDE.md` | `@AGENTS.md` import + Claude Code specifics |
 | `.claudeignore`, `.claude/settings.json` | Files agents skip / Claude Code read-deny rules |
@@ -84,19 +97,24 @@ scripts/check-templates.js  Offline template checks (`npm test`, runs in CI)
 
 ```bash
 npm test                                    # offline checks (CI)
-node index.js tmp-app -t react-ts           # full scaffold (needs network + yarn)
-cd tmp-app && yarn build && yarn lint && yarn dev
+node index.js tmp-app -t react-ts --pm pnpm --store --router   # full scaffold (needs network)
+cd tmp-app && pnpm build && pnpm lint && pnpm dev
+node scripts/upload.mjs --dry-run           # inside a project: shows the next manifest version
 ```
 
 Test **all four** templates for anything touching `src/` or shared template files.
-`yarn build` must pass with no TS errors; the dev server should answer
+Test each package manager and both store/router on/off for anything touching
+`src/pm.js`, `src/features.js` or `templates/_addons`. `build` must pass with no TS errors; the dev server should answer
 `/domo/environment/v1` (401 "Not authenticated" without `domo login` is expected).
 Delete `tmp-*` folders afterwards (ignored by git).
 
 ## Releasing
 
-1. Bump `version` in `package.json` (semver; breaking template API changes = major).
-2. Commit, push, create a GitHub release → workflow runs `npm test` then `npm publish`.
+1. Bump `version` in `package.json` (semver; breaking template API changes = major),
+   e.g. `npm version minor --no-git-tag-version`.
+2. Commit and push to `master`/`main`. The workflow runs `npm test`, publishes if that
+   version isn't on npm yet, and pushes the `vX.Y.Z` tag. (Creating a GitHub release
+   still works too.) Pushes without a version bump only run tests.
 
 ## Roadmap
 

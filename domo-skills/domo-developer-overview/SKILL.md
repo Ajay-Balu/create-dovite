@@ -46,7 +46,7 @@ Most platform activity meters **credits** (**Code Engine itself consumes none**)
 3. **Only manifest-mapped datasets are queryable**; max 100 data connections per app. [Documented]
 4. **Aggregate and filter server-side** (query params / SQL / ETL). Do not pull millions of rows into the browser. Map only the columns you need. [Documented]
 5. **`proxyId` is required for local dev** against AppDB, Workflows, Code Engine, DQL, writeback, OAuth. It is a card ID; deleting that card breaks it. [Documented]
-6. **Bump `version` in manifest.json** before `domo publish` or you overwrite the same version. `domo release` locks it. [Documented]
+6. **Bump `version` in manifest.json** before `domo publish` or you overwrite the same version. `domo release` locks it. [Documented] (create-dovite projects: the `upload` script bumps it automatically; don't bump by hand.)
 7. **External resources must be `https://`**; third-party APIs need CORS; external-link domain whitelist is admin-controlled. [Documented]
 8. **Code Engine: 5 min, 1 GB, one output.** Return a single `object` for complex results. [Documented]
 9. **Product APIs: server-side only.** App code uses App Framework APIs via `domo.js`. [Documented]
